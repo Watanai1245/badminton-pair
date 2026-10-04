@@ -304,7 +304,7 @@ const SLOT_POS = [
 ];
 
 function chipHTML(p) {
-  return `<div class="pchip ${p.g}"><span class="ic">${p.g === 'M' ? '♂' : '♀'}</span><span class="pname">${esc(p.name)}</span></div>`;
+  return `<div class="pchip ${p.g}"><span class="gdot"></span><span class="pname">${esc(p.name)}</span></div>`;
 }
 
 let animTimers = [];
@@ -353,7 +353,7 @@ function showRound(i, animate) {
 
   const bl = $('#benchList');
   bl.innerHTML = rd.bench.length
-    ? rd.bench.map(p => `<span class="bchip ${p.g}">${p.g === 'M' ? '♂' : '♀'} ${esc(p.name)}</span>`).join('')
+    ? rd.bench.map(p => `<span class="bchip ${p.g}">${esc(p.name)}</span>`).join('')
     : '<span class="bchip none">ทุกคนได้เล่น 🎉</span>';
 }
 

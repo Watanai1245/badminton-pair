@@ -300,10 +300,49 @@ dialog::backdrop { background: rgba(5,46,31,.6); }
   .courts:has(.courtwrap:only-child) { grid-template-columns: 1fr; max-width: 420px; margin-inline: auto; }
 }
 
-/* polish */
+/* polish (superseded below) */
 .court .ln.outer, .court .ln { filter: drop-shadow(0 0 1px rgba(0,0,0,.25)); }
 .pchip { background: linear-gradient(180deg, #fff, #f1f7f3); border-radius: 16px; box-shadow: 0 6px 14px rgba(0,0,0,.32); }
 .team-label.a { background: var(--lime); color: var(--green-900); }
 .team-label.b { background: #fff; color: var(--green-900); }
 .card { border: 1px solid rgba(10,107,70,.06); }
 .courtwrap { border: 1px solid rgba(10,107,70,.06); }
+
+/* ===== calm court: names first, court is just a quiet backdrop ===== */
+.court {
+  background: linear-gradient(180deg, #2b7d57, #236a49);
+  border: 4px solid var(--green-900);
+  box-shadow: none;
+  aspect-ratio: 0.9;
+}
+.court .ln { filter: none; background: rgba(255,255,255,.28); }
+.court .ln.outer { background: none; border: 2px solid rgba(255,255,255,.4); }
+.court .ln.side-l, .court .ln.side-r, .court .ln.sv-t, .court .ln.sv-b { display: none; }
+.court .ln.mid-t, .court .ln.mid-b { width: 1px; left: 50%; }
+.net {
+  height: 4px; top: calc(50% - 2px); border: 0;
+  background: rgba(255,255,255,.85);
+}
+.net::before, .net::after { display: none; }
+.vs {
+  background: var(--green-900); color: #fff; border: 0; font-size: 12px; padding: 3px 10px;
+}
+.team-label {
+  background: none !important; color: rgba(255,255,255,.75) !important; font-size: 12px; letter-spacing: 1px; padding: 0;
+}
+.team-label.a { top: 6%; } .team-label.b { bottom: 6%; }
+.slot { width: 44%; }
+.pchip {
+  gap: 8px; padding: 12px 10px; border-radius: 12px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  border-bottom: 0; justify-content: flex-start;
+}
+.pname { font-size: 18px; font-weight: 700; color: #0e2318; }
+.gdot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--male); }
+.pchip.F .gdot { background: var(--female); }
+.courtwrap { padding: 14px; }
+.courttitle { font-size: 18px; }
+.courttitle small { font-size: 13px; }
+.bchip { font-size: 15px; background: #fff; border: 0; border-left: 5px solid var(--male); border-radius: 8px; padding: 6px 12px; }
+.bchip.F { border-left-color: var(--female); }
+.bchip.none { border-left: 0; }
+.benchlist { gap: 6px; }
