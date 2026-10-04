@@ -346,3 +346,5 @@ dialog::backdrop { background: rgba(5,46,31,.6); }
 .bchip.F { border-left-color: var(--female); }
 .bchip.none { border-left: 0; }
 .benchlist { gap: 6px; }
+
+.logo { width: 30px; height: 30px; border-radius: 8px; vertical-align: middle; margin-right: 6px; }

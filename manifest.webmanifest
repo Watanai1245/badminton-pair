@@ -1,0 +1,13 @@
+{
+  "name": "Badminton Pair",
+  "short_name": "Badminton Pair",
+  "description": "Doubles badminton pairing for your court session",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eaf4ee",
+  "theme_color": "#0a6b46",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

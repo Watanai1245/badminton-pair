@@ -358,7 +358,7 @@ function showRound(i, animate) {
 }
 
 function scheduleText() {
-  const lines = [`🏸 ตารางจับคู่แบดมินตัน (${state.courts} คอร์ด)`];
+  const lines = [`Badminton Pair (${state.courts} คอร์ด)`];
   state.schedule.rounds.forEach((rd, i) => {
     lines.push(`\nรอบ ${i + 1}`);
     rd.matches.forEach(m =>
@@ -438,7 +438,7 @@ async function renderImage() {
   g.addColorStop(0, COL.g9); g.addColorStop(.7, COL.g8); g.addColorStop(1, '#12a366');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, HEAD);
   ctx.fillStyle = COL.lime; ctx.fillRect(0, HEAD - 6, W, 6);
-  ctx.fillStyle = '#fff'; ctx.font = `700 54px ${FONT}`; ctx.fillText('🏸 ตารางจับคู่แบดมินตัน', PAD, 72);
+  ctx.fillStyle = '#fff'; ctx.font = `700 54px ${FONT}`; ctx.fillText('Badminton Pair', PAD, 72);
   ctx.font = `500 26px ${FONT}`; ctx.fillStyle = COL.lime;
   const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
   ctx.fillText(`${dateStr}  •  ${state.courts} คอร์ด  •  ${state.players.length} คน  •  ${rounds.length} รอบ × ${state.minutes} นาที`, PAD, 126);
@@ -489,7 +489,7 @@ async function renderImage() {
     y += h + GAP;
   });
   ctx.fillStyle = '#58705f'; ctx.font = `500 20px ${FONT}`; ctx.textAlign = 'center';
-  ctx.fillText('● ชาย   ● หญิง  — สร้างด้วย จับคู่แบดมินตัน', W / 2, H - 36);
+  ctx.fillText('● ชาย   ● หญิง  — made with Badminton Pair', W / 2, H - 36);
   return cv;
 }
 
@@ -501,7 +501,7 @@ async function saveImage() {
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     const file = new File([blob], 'badminton-pair.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'ตารางจับคู่แบดมินตัน' }); }
+      try { await navigator.share({ files: [file], title: 'Badminton Pair' }); }
       catch (e) { if (e.name !== 'AbortError') throw e; }
     } else {
       const a = document.createElement('a');

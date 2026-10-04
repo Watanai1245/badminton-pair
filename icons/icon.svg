@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12a366"/><stop offset="1" stop-color="#052e1f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- court lines -->
+  <g fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="14">
+    <rect x="150" y="150" width="724" height="724" rx="8"/>
+    <line x1="150" y1="512" x2="874" y2="512"/>
+    <line x1="512" y1="150" x2="512" y2="330"/>
+    <line x1="512" y1="694" x2="512" y2="874"/>
+    <line x1="150" y1="330" x2="874" y2="330"/>
+    <line x1="150" y1="694" x2="874" y2="694"/>
+  </g>
+  <!-- shuttlecock, tilted: cork bottom-right, feathers top-left -->
+  <g transform="rotate(40 512 512)">
+    <path d="M338 250 Q512 205 686 250 L580 640 L444 640 Z" fill="#fff"/>
+    <g stroke="#0a6b46" stroke-width="9" stroke-opacity=".4" fill="none">
+      <line x1="400" y1="235" x2="468" y2="640"/><line x1="512" y1="225" x2="512" y2="640"/><line x1="624" y1="235" x2="556" y2="640"/>
+      <path d="M338 250 Q512 205 686 250" stroke-width="14" stroke="#d4ff3a" stroke-opacity="1"/>
+    </g>
+    <circle cx="512" cy="690" r="88" fill="#d4ff3a"/>
+    <rect x="440" y="622" width="144" height="26" rx="13" fill="#0a6b46" fill-opacity=".35"/>
+  </g>
+</svg>
