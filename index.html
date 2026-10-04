@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a6b46">
+  <title>จับคู่แบดมินตัน</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏸</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="shuttle">🏸</span> จับคู่แบดมินตัน</div>
+    <button id="btnBack" class="ghost hidden" type="button">← แก้ไขข้อมูล</button>
+  </header>
+
+  <main>
+    <!-- ===== SETUP ===== -->
+    <section id="setup">
+      <div class="card">
+        <h2><span class="num">1</span> คอร์ดและเวลา</h2>
+        <div class="row">
+          <label>จำนวนคอร์ด
+            <div class="stepper">
+              <button type="button" data-step="courts" data-d="-1">−</button>
+              <output id="courtsOut">2</output>
+              <button type="button" data-step="courts" data-d="1">+</button>
+            </div>
+          </label>
+          <label>เวลาที่ตีทั้งหมด (ชม.)
+            <div class="stepper">
+              <button type="button" data-step="hours" data-d="-0.5">−</button>
+              <output id="hoursOut">2</output>
+              <button type="button" data-step="hours" data-d="0.5">+</button>
+            </div>
+          </label>
+        </div>
+        <label class="block">เวลาต่อ 1 รอบ
+          <div class="seg" id="minutesSeg">
+            <button type="button" data-min="10">10 นาที</button>
+            <button type="button" data-min="15">15 นาที</button>
+            <button type="button" data-min="20">20 นาที</button>
+            <button type="button" data-min="30">30 นาที</button>
+            <button type="button" data-min="60">1 ชม.</button>
+          </div>
+        </label>
+        <p class="hint" id="roundsHint"></p>
+      </div>
+
+      <div class="card">
+        <h2><span class="num">2</span> รายชื่อผู้เล่น <span class="badge" id="playerCount">0</span></h2>
+        <form id="addForm" class="addrow" autocomplete="off">
+          <input id="nameInput" type="text" placeholder="ชื่อผู้เล่น" maxlength="20" required>
+          <div class="gender" role="radiogroup" aria-label="เพศ">
+            <label class="g-m"><input type="radio" name="gender" value="M" checked><span>♂ ชาย</span></label>
+            <label class="g-f"><input type="radio" name="gender" value="F"><span>♀ หญิง</span></label>
+          </div>
+          <button class="primary" type="submit">เพิ่ม</button>
+        </form>
+        <ul id="playerList" class="players"></ul>
+        <div class="tools">
+          <button type="button" class="ghost small" id="btnBulk">วางหลายชื่อ</button>
+          <button type="button" class="ghost small danger" id="btnClear">ล้างทั้งหมด</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="num">3</span> เงื่อนไขการจับคู่</h2>
+        <div class="rules" id="rules"></div>
+      </div>
+
+      <div id="errorBox" class="error hidden"></div>
+      <button id="btnGo" class="cta" type="button">🏸 จับคู่เลย!</button>
+    </section>
+
+    <!-- ===== RESULT ===== -->
+    <section id="result" class="hidden">
+      <div id="warnBox" class="warn hidden"></div>
+      <div class="roundnav">
+        <button id="prevRound" class="navbtn" type="button" aria-label="รอบก่อนหน้า">‹</button>
+        <div class="roundtitle">
+          <strong id="roundLabel">รอบ 1</strong>
+          <span id="roundTime"></span>
+        </div>
+        <button id="nextRound" class="navbtn" type="button" aria-label="รอบถัดไป">›</button>
+      </div>
+      <div class="chips" id="roundChips"></div>
+
+      <div id="courts" class="courts"></div>
+
+      <div class="card bench" id="benchCard">
+        <h3>🪑 พักรอบนี้</h3>
+        <div id="benchList" class="benchlist"></div>
+      </div>
+
+      <div class="actions">
+        <button id="btnReshuffle" class="cta alt" type="button">🔀 สุ่มใหม่ทั้งหมด</button>
+        <button id="btnSave" class="cta" type="button">💾 บันทึกเป็นรูป (ส่งให้เพื่อนดู)</button>
+        <button id="btnShare" class="ghost" type="button">📋 คัดลอกเป็นข้อความ</button>
+      </div>
+
+      <div class="card">
+        <h3>📊 สรุปจำนวนเกม</h3>
+        <div id="stats" class="stats"></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="bulkDialog">
+    <form method="dialog" class="dlg">
+      <h3>วางรายชื่อหลายคน</h3>
+      <p class="hint">1 บรรทัด = 1 คน ต่อท้ายด้วย <b>ช</b> หรือ <b>ญ</b> (หรือ M / F) เช่น<br>สมชาย ช<br>สมหญิง ญ</p>
+      <textarea id="bulkText" rows="8" placeholder="สมชาย ช&#10;สมหญิง ญ"></textarea>
+      <div class="dlgbtn">
+        <button value="cancel" class="ghost">ยกเลิก</button>
+        <button id="bulkOk" value="ok" class="primary">เพิ่มทั้งหมด</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
