@@ -20,12 +20,13 @@ const state = {
   rules: Object.fromEntries(RULES.map(r => [r.key, r.def])),
   schedule: null,
   current: 0,
+  view: 'setup',
 };
 
 function save() {
   try {
-    const { courts, hours, minutes, players, rules } = state;
-    localStorage.setItem(STORE_KEY, JSON.stringify({ courts, hours, minutes, players, rules }));
+    const { courts, hours, minutes, players, rules, schedule, current, view } = state;
+    localStorage.setItem(STORE_KEY, JSON.stringify({ courts, hours, minutes, players, rules, schedule, current, view }));
   } catch (e) { /* private mode etc. */ }
 }
 function load() {
@@ -36,6 +37,8 @@ function load() {
       courts: d.courts || 2, hours: d.hours || 2, minutes: d.minutes || 20,
       players: Array.isArray(d.players) ? d.players : [],
       rules: { ...state.rules, ...(d.rules || {}) },
+      schedule: d.schedule && Array.isArray(d.schedule.rounds) ? d.schedule : null,
+      current: d.current || 0, view: d.view || 'setup',
     });
   } catch (e) { /* ignore */ }
 }
@@ -245,6 +248,7 @@ function bindSetup() {
 
 /* ================= Result UI ================= */
 function showSetup() {
+  state.view = 'setup'; save();
   $('#result').classList.add('hidden');
   $('#setup').classList.remove('hidden');
   $('#btnBack').classList.add('hidden');
@@ -261,6 +265,7 @@ function start() {
   }
   err.classList.add('hidden');
   generate();
+  state.view = 'result';
   $('#setup').classList.add('hidden');
   $('#result').classList.remove('hidden');
   $('#btnBack').classList.remove('hidden');
@@ -270,6 +275,10 @@ function start() {
 
 function generate() {
   state.schedule = generateSchedule(state.players, state.courts, roundCount(), state.rules);
+  applySchedule();
+}
+
+function applySchedule() {
   const w = $('#warnBox');
   if (state.schedule.warnings.length) {
     w.innerHTML = '⚠️ ' + state.schedule.warnings.join('<br>⚠️ '); w.classList.remove('hidden');
@@ -350,6 +359,8 @@ function showRound(i, animate) {
     box.appendChild(wrap);
 
   });
+
+  save();
 
   const bl = $('#benchList');
   bl.innerHTML = rd.bench.length
@@ -520,3 +531,14 @@ renderSetup();
 renderRules();
 bindSetup();
 bindResult();
+if (state.schedule && state.view === 'result') {
+  applySchedule();
+  $('#setup').classList.add('hidden');
+  $('#result').classList.remove('hidden');
+  $('#btnBack').classList.remove('hidden');
+  showRound(state.current, false);
+}
+
+// no pinch zoom (iOS Safari ignores user-scalable=no)
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
+  document.addEventListener(ev, e => e.preventDefault(), { passive: false }));

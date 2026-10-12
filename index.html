@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0a6b46">
   <title>Badminton Pair</title>
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
@@ -23,7 +23,7 @@
     <button id="btnBack" class="ghost hidden" type="button">← แก้ไขข้อมูล</button>
   </header>
 
-  <main>
+  <main id="view-pair" class="view">
     <!-- ===== SETUP ===== -->
     <section id="setup">
       <div class="card">
@@ -115,6 +115,104 @@
     </section>
   </main>
 
+  <!-- ===== SCOREBOARD ===== -->
+  <main id="view-score" class="view hidden">
+    <div class="card">
+      <h2>🔢 นับแต้ม</h2>
+      <label class="block">ดึงชื่อจากตารางจับคู่
+        <select id="sbPick"><option value="">— เลือกแมตช์ (ไม่บังคับ) —</option></select>
+      </label>
+      <label class="block" style="margin-top:12px">เล่นถึงกี่แต้ม
+        <div class="seg" id="sbTarget">
+          <button type="button" data-t="11">11</button>
+          <button type="button" data-t="15">15</button>
+          <button type="button" data-t="21">21</button>
+        </div>
+      </label>
+    </div>
+
+    <div class="sb" id="sb">
+      <div class="sbside" id="sbA">
+        <input class="tname" maxlength="24" aria-label="ชื่อทีม A">
+        <button class="srv" type="button" aria-label="ตั้งเป็นผู้เสิร์ฟ">🏸 เสิร์ฟ</button>
+        <button class="pts" type="button" aria-label="เพิ่มแต้มทีม A">0</button>
+        <button class="minus" type="button">− 1</button>
+      </div>
+      <div class="sbside" id="sbB">
+        <input class="tname" maxlength="24" aria-label="ชื่อทีม B">
+        <button class="srv" type="button" aria-label="ตั้งเป็นผู้เสิร์ฟ">🏸 เสิร์ฟ</button>
+        <button class="pts" type="button" aria-label="เพิ่มแต้มทีม B">0</button>
+        <button class="minus" type="button">− 1</button>
+      </div>
+    </div>
+    <p class="sbinfo" id="sbInfo"></p>
+    <div class="sbwin hidden" id="sbWin">
+      <strong id="sbWinTxt"></strong>
+      <button class="primary" id="sbNext" type="button">เกมถัดไป ▶</button>
+    </div>
+    <div class="sbtools">
+      <button class="ghost" id="sbUndo" type="button">↩ ย้อนแต้ม</button>
+      <button class="ghost" id="sbSwap" type="button">⇄ สลับฝั่ง</button>
+      <button class="ghost danger" id="sbReset" type="button">⟲ เริ่มใหม่</button>
+    </div>
+    <div class="card" id="sbHistCard">
+      <h3>📜 ผลแต่ละเกม <span class="badge" id="sbTally">0 - 0</span></h3>
+      <div id="sbHist" class="hist"></div>
+    </div>
+  </main>
+
+  <!-- ===== WARM-UP ===== -->
+  <main id="view-warmup" class="view hidden">
+    <div class="card">
+      <h2>🔥 วอร์มอัพ / คูลดาวน์</h2>
+      <div class="seg" id="wuKind">
+        <button type="button" data-k="warm">วอร์มอัพ</button>
+        <button type="button" data-k="cool">คูลดาวน์</button>
+      </div>
+      <div class="seg" id="wuLen" style="margin-top:8px">
+        <button type="button" data-l="q">แบบเร็ว</button>
+        <button type="button" data-l="f">แบบเต็ม</button>
+      </div>
+      <p class="hint" id="wuSummary"></p>
+      <button class="cta" id="wuStart" type="button" style="margin-top:12px">▶ เริ่มวอร์มอัพ</button>
+    </div>
+    <div id="wuList" class="exlist"></div>
+  </main>
+
+  <!-- ===== TIPS ===== -->
+  <main id="view-tips" class="view hidden">
+    <div class="card">
+      <h2>🎯 เทคนิคการเล่น</h2>
+      <p class="hint" style="margin:0">เลือกหมวดด้านล่าง ภาพประกอบเป็นแผนภาพแบบย่อเพื่อช่วยให้เข้าใจ</p>
+    </div>
+    <div id="tipRead">
+      <div class="chips" id="tipChips"></div>
+      <div id="tipBody"></div>
+    </div>
+  </main>
+
+  <!-- warm-up player -->
+  <div id="wuPlayer" class="player hidden" role="dialog" aria-modal="true">
+    <div class="pl-top"><span id="plStep"></span><button id="plClose" class="ghost" type="button">✕ ปิด</button></div>
+    <div class="pl-emoji" id="plEmoji"></div>
+    <h2 id="plName"></h2>
+    <p id="plDesc"></p>
+    <div class="ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54"/><circle class="fg" id="plRing" cx="60" cy="60" r="54"/></svg><b id="plTime">0</b></div>
+    <p class="pl-next" id="plNext"></p>
+    <div class="pl-ctl">
+      <button id="plPrev" type="button" aria-label="ก่อนหน้า">⏮</button>
+      <button id="plPause" class="big" type="button" aria-label="หยุด/เล่น">⏸</button>
+      <button id="plSkip" type="button" aria-label="ข้าม">⏭</button>
+    </div>
+  </div>
+
+  <nav class="tabbar" id="tabbar">
+    <button type="button" data-tab="pair"><i>🏸</i><span>จับคู่</span></button>
+    <button type="button" data-tab="score"><i>🔢</i><span>นับแต้ม</span></button>
+    <button type="button" data-tab="warmup"><i>🔥</i><span>วอร์มอัพ</span></button>
+    <button type="button" data-tab="tips"><i>🎯</i><span>เทคนิค</span></button>
+  </nav>
+
   <dialog id="bulkDialog">
     <form method="dialog" class="dlg">
       <h3>วางรายชื่อหลายคน</h3>
@@ -129,5 +227,10 @@
 
   <div id="toast" class="toast"></div>
   <script src="app.js"></script>
+  <script src="tabs.js"></script>
+  <script src="score.js"></script>
+  <script src="warmup.js"></script>
+  <script src="illus.js"></script>
+  <script src="tips.js"></script>
 </body>
 </html>
