@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#12a366"/><stop offset="1" stop-color="#052e1f"/>
+      <stop offset="0" stop-color="#1ba7e3"/><stop offset="1" stop-color="#0b2a4a"/>
     </linearGradient>
   </defs>
   <rect width="1024" height="1024" fill="url(#bg)"/>
@@ -17,11 +17,11 @@
   <!-- shuttlecock, tilted: cork bottom-right, feathers top-left -->
   <g transform="rotate(40 512 512)">
     <path d="M338 250 Q512 205 686 250 L580 640 L444 640 Z" fill="#fff"/>
-    <g stroke="#0a6b46" stroke-width="9" stroke-opacity=".4" fill="none">
+    <g stroke="#087abf" stroke-width="9" stroke-opacity=".4" fill="none">
       <line x1="400" y1="235" x2="468" y2="640"/><line x1="512" y1="225" x2="512" y2="640"/><line x1="624" y1="235" x2="556" y2="640"/>
-      <path d="M338 250 Q512 205 686 250" stroke-width="14" stroke="#d4ff3a" stroke-opacity="1"/>
+      <path d="M338 250 Q512 205 686 250" stroke-width="14" stroke="#bfe8ff" stroke-opacity="1"/>
     </g>
-    <circle cx="512" cy="690" r="88" fill="#d4ff3a"/>
-    <rect x="440" y="622" width="144" height="26" rx="13" fill="#0a6b46" fill-opacity=".35"/>
+    <circle cx="512" cy="690" r="88" fill="#bfe8ff"/>
+    <rect x="440" y="622" width="144" height="26" rx="13" fill="#087abf" fill-opacity=".35"/>
   </g>
 </svg>

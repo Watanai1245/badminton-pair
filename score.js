@@ -21,28 +21,80 @@
 
   const sides = [$s('#sbA'), $s('#sbB')];
 
+  /* ---- confetti burst ---- */
+  function celebrate() {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 120]);
+    const cv = document.createElement('canvas');
+    cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90';
+    const dpr = window.devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; document.body.appendChild(cv);
+    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+    const colors = ['#22c55e', '#4ade80', '#facc15', '#ffffff', '#38bdf8', '#f472b6', '#fb923c'];
+    const ps = [];
+    const burst = (x, y, n, power) => { for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = (0.4 + Math.random()) * power;
+      ps.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - power * .5, r: 3 + Math.random() * 4, c: colors[i % colors.length],
+        rot: Math.random() * 6, vr: (Math.random() - .5) * .4, life: 1, shape: i % 3 });
+    } };
+    burst(W * .5, H * .38, 90, 9);
+    setTimeout(() => burst(W * .2, H * .45, 60, 8), 220);
+    setTimeout(() => burst(W * .8, H * .45, 60, 8), 380);
+    setTimeout(() => burst(W * .5, H * .3, 70, 10), 700);
+    const t0 = performance.now();
+    (function frame(now) {
+      ctx.clearRect(0, 0, W, H);
+      ps.forEach(p => {
+        p.vy += .22; p.vx *= .992; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= .0075;
+        if (p.life <= 0) return;
+        ctx.globalAlpha = Math.min(1, p.life * 1.6); ctx.fillStyle = p.c;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        if (p.shape === 0) ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); else { ctx.beginPath(); ctx.arc(0, 0, p.r / 1.6, 0, 7); ctx.fill(); }
+        ctx.restore();
+      });
+      if (now - t0 < 3600) requestAnimationFrame(frame); else cv.remove();
+    })(t0);
+  }
+  let shownWin = winner();            // don't celebrate a game that was already over on load
+
   function render() {
     const w = winner();
+    if (w !== -1 && shownWin === -1) celebrate();
+    shownWin = w;
     sides.forEach((el, k) => {
       const inp = el.querySelector('.tname');
       if (document.activeElement !== inp) inp.value = sb.names[k];
       el.querySelector('.pts').textContent = sb.score[k];
       el.classList.toggle('serving', sb.server === k);
       el.classList.toggle('won', w === k);
+      el.classList.toggle('lost', w !== -1 && w !== k);
       el.querySelector('.pts').disabled = w !== -1;
       el.querySelector('.minus').disabled = sb.score[k] === 0;
     });
     document.querySelectorAll('#sbTarget button').forEach(b => b.classList.toggle('on', +b.dataset.t === sb.target));
 
     const sv = sb.server, side = sb.score[sv] % 2 === 0 ? 'ขวา' : 'ซ้าย';
-    const [a, b] = sb.score;
-    let info = w === -1 ? `🏸 ${sb.names[sv]} เสิร์ฟ จากช่อง <b>${side}</b> (แต้มคู่ = ขวา, แต้มคี่ = ซ้าย)` : '';
-    if (w === -1 && sb.target === 21 && Math.max(a, b) === 11) info += '<br>⏱ ถึง 11 แต้มแล้ว — พักช่วงเกมได้ 60 วินาที';
-    if (w === -1 && a === b && a >= sb.target - 1) info += '<br>⚖️ เสมอช่วงท้ายเกม — ต้องนำ 2 แต้มถึงจะชนะ';
+    const [a, b] = sb.score, t = sb.target, cap = t + 9;
+    let info = w === -1 ? `${sb.names[sv]} เสิร์ฟจากช่อง <b>${side}</b> (แต้มคู่ = ขวา, คี่ = ซ้าย)` : '';
+    if (w === -1 && t === 21 && Math.max(a, b) === 11) info += '<br>ถึง 11 แต้มแล้ว พักช่วงเกมได้ 60 วินาที';
     $s('#sbInfo').innerHTML = info;
 
+    // drama: deuce / game point / sudden-death point
+    const wins = k => sb.score[k] + 1 >= cap || (sb.score[k] + 1 >= t && sb.score[k] + 1 - sb.score[1 - k] >= 2);
+    let kind = '', title = '', sub = '';
+    if (w === -1) {
+      if (a === b && a === cap - 1) { kind = 'golden'; title = 'แต้มทอง'; sub = `${a}-${b} ใครได้แต้มต่อไปชนะเกมทันที`; }
+      else if (a === b && a >= t - 1) { kind = 'deuce'; title = 'DEUCE'; sub = 'เสมอ ต้องนำ 2 แต้มถึงจะชนะ'; }
+      else if (wins(0) !== wins(1)) { const k = wins(0) ? 0 : 1; kind = 'point'; title = 'GAME POINT'; sub = `${sb.names[k]} ได้แต้มต่อไปชนะเกม`; }
+    }
+    const box = $s('#sbAlert');
+    box.className = 'alert' + (kind ? ' ' + kind : ' hidden');
+    $s('#sbAlertTitle').textContent = title; $s('#sbAlertSub').textContent = sub;
+    $s('#sb').classList.toggle('hot', kind === 'deuce' || kind === 'golden');
+    sides.forEach((el, k) => el.classList.toggle('mp', kind === 'point' && wins(k)));
+
     $s('#sbWin').classList.toggle('hidden', w === -1);
-    if (w !== -1) $s('#sbWinTxt').textContent = `🏆 ${sb.names[w]} ชนะเกมที่ ${sb.games.length + 1} (${a}–${b})`;
+    if (w !== -1) { $s('#sbWinTxt').textContent = `${sb.names[w]} ชนะ!`; $s('#sbWinSub').textContent = `เกมที่ ${sb.games.length + 1} · ${a} – ${b}`; }
     $s('#sbUndo').disabled = !sb.stack.length;
 
     $s('#sbTally').textContent = `${sb.wins[0]} - ${sb.wins[1]}`;
@@ -100,30 +152,6 @@
     if ((sb.score[0] + sb.score[1] || sb.games.length) && !confirm('เริ่มนับแต้มใหม่ทั้งหมด (ล้างผลทุกเกม)?')) return;
     Object.assign(sb, { score: [0, 0], server: 0, stack: [], games: [], wins: [0, 0] }); render();
   });
-
-  /* pick names from the pairing schedule */
-  function fillPick() {
-    const sel = $s('#sbPick');
-    sel.length = 1;
-    if (typeof state === 'undefined' || !state.schedule) return;
-    state.schedule.rounds.forEach((rd, ri) => rd.matches.forEach(m => {
-      const o = document.createElement('option');
-      o.value = `${ri}-${m.court}`;
-      o.textContent = `รอบ ${ri + 1} คอร์ด ${m.court}: ${m.a[0].name}/${m.a[1].name} vs ${m.b[0].name}/${m.b[1].name}`;
-      sel.appendChild(o);
-    }));
-  }
-  $s('#sbPick').addEventListener('change', e => {
-    if (!e.target.value) return;
-    const [ri, court] = e.target.value.split('-').map(Number);
-    const m = state.schedule.rounds[ri].matches.find(x => x.court === court);
-    if (!m) return;
-    if ((sb.score[0] + sb.score[1] || sb.games.length) && !confirm('โหลดแมตช์ใหม่จะล้างคะแนนปัจจุบัน ต้องการต่อไหม?')) { e.target.value = ''; return; }
-    sb.names = [`${m.a[0].name}/${m.a[1].name}`, `${m.b[0].name}/${m.b[1].name}`];
-    Object.assign(sb, { score: [0, 0], server: 0, stack: [], games: [], wins: [0, 0] });
-    render();
-  });
-  document.addEventListener('tabchange', e => { if (e.detail === 'score') fillPick(); });
 
   render();
 })();

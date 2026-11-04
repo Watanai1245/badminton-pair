@@ -36,10 +36,10 @@
     document.querySelectorAll('#wuLen button').forEach(b => b.classList.toggle('on', b.dataset.l === len));
     const list = items(), total = list.reduce((a, x) => a + x.s, 0);
     $w('#wuSummary').textContent = `${list.length} ท่า • รวมประมาณ ${Math.round(total / 60)} นาที`;
-    $w('#wuStart').textContent = kind === 'warm' ? '▶ เริ่มวอร์มอัพ' : '▶ เริ่มคูลดาวน์';
+    $w('#wuStart').textContent = kind === 'warm' ? 'เริ่มวอร์มอัพ' : 'เริ่มคูลดาวน์';
     $w('#wuList').innerHTML = list.map((x, i) => `<div class="ex">
-        <span class="em">${x.e}</span>
-        <div class="tx"><b>${i + 1}. ${x.n}</b><small>${x.d}</small></div>
+        <span class="no">${i + 1}</span>
+        <div class="tx"><b>${x.n}</b><small>${x.d}</small></div>
         <span class="dur">${fmt(x.s)}</span></div>`).join('');
   }
 
@@ -55,7 +55,7 @@
   function show() {
     const x = seq[idx];
     $w('#plStep').textContent = `ท่าที่ ${idx + 1} / ${seq.length}`;
-    $w('#plEmoji').textContent = x.e; $w('#plName').textContent = x.n; $w('#plDesc').textContent = x.d;
+    $w('#plName').textContent = x.n; $w('#plDesc').textContent = x.d;
     $w('#plNext').textContent = seq[idx + 1] ? `ถัดไป: ${seq[idx + 1].n}` : 'ท่าสุดท้ายแล้ว!';
     left = x.s; tick(true);
   }
@@ -78,22 +78,23 @@
   function finish() {
     clearInterval(timer);
     beep(988, 200); setTimeout(() => beep(1318, 300), 220);
-    $w('#plEmoji').textContent = '🎉'; $w('#plName').textContent = kind === 'warm' ? 'วอร์มอัพเสร็จแล้ว!' : 'คูลดาวน์เสร็จแล้ว!';
-    $w('#plDesc').textContent = kind === 'warm' ? 'ร่างกายพร้อมแล้ว ลงคอร์ดได้เลย 🏸' : 'ดื่มน้ำและพักผ่อนให้เพียงพอ แล้วเจอกันครั้งหน้า';
+    $w('#plName').textContent = kind === 'warm' ? 'วอร์มอัพเสร็จแล้ว!' : 'คูลดาวน์เสร็จแล้ว!';
+    $w('#plDesc').textContent = kind === 'warm' ? 'ร่างกายพร้อมแล้ว ลงคอร์ดได้เลย' : 'ดื่มน้ำและพักผ่อนให้เพียงพอ แล้วเจอกันครั้งหน้า';
     $w('#plNext').textContent = ''; $w('#plTime').textContent = '✓'; ring.style.strokeDashoffset = 0;
     $w('#plStep').textContent = 'เสร็จสิ้น';
+    $w('#plTime').textContent = '✓';
   }
   function close() { clearInterval(timer); $w('#wuPlayer').classList.add('hidden'); keepAwake(false); }
 
   $w('#wuStart').addEventListener('click', () => {
     seq = items(); idx = 0; paused = false;
-    $w('#plPause').textContent = '⏸';
+    $w('#plPause').textContent = 'หยุด';
     $w('#wuPlayer').classList.remove('hidden');
     beep(880, 80);                       // unlock audio on this tap
     keepAwake(true);
     show(); clearInterval(timer); timer = setInterval(loop, 1000);
   });
-  $w('#plPause').addEventListener('click', () => { paused = !paused; $w('#plPause').textContent = paused ? '▶' : '⏸'; });
+  $w('#plPause').addEventListener('click', () => { paused = !paused; $w('#plPause').textContent = paused ? 'เล่นต่อ' : 'หยุด'; });
   $w('#plSkip').addEventListener('click', next);
   $w('#plPrev').addEventListener('click', () => { if (idx > 0) { idx--; show(); } else show(); });
   $w('#plClose').addEventListener('click', close);

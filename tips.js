@@ -159,13 +159,13 @@
 
   function renderRead() {
     $t('#tipChips').innerHTML = TIPS.map(t =>
-      `<button type="button" data-id="${t.id}" class="${t.id === cur ? 'on' : ''}">${t.e} ${t.t}</button>`).join('');
+      `<button type="button" data-id="${t.id}" class="${t.id === cur ? 'on' : ''}">${t.t}</button>`).join('');
     const sec = TIPS.find(t => t.id === cur);
     $t('#tipBody').innerHTML = sec.cards.map(c => `<div class="card tip">
         <h3>${E(c.h)}</h3>
         ${typeof ILLUS !== 'undefined' && ILLUS[c.h] ? `<div class="illus">${ILLUS[c.h]}</div>` : ''}
         <ul>${c.p.map(x => `<li>${E(x)}</li>`).join('')}</ul>
-        <div class="key">💡 ${E(c.k)}</div></div>`).join('');
+        <div class="key">${E(c.k)}</div></div>`).join('');
   }
   $t('#tipChips').addEventListener('click', e => {
     const b = e.target.closest('button[data-id]'); if (!b) return;

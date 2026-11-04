@@ -3,7 +3,7 @@
 /* Inline SVG illustrations for the technique tab, keyed by card heading.
    Stylised diagrams (not to scale), drawn for this app. */
 const ILLUS = (() => {
-  const G9 = '#052e1f', G8 = '#0a6b46', LIME = '#d4ff3a', COURT = '#236a49';
+  const G9 = '#0b2a4a', G8 = '#087abf', LIME = '#bfe8ff', COURT = '#0f5f93';
   const svg = (vb, inner) =>
     `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" role="img" font-family="Prompt, sans-serif" font-size="11">${inner}</svg>`;
   const defs = `<defs>
@@ -30,7 +30,7 @@ const ILLUS = (() => {
       <line x1="${x}" y1="93" x2="${x + 15 * dir}" y2="76"/><line x1="${x + 15 * dir}" y1="76" x2="${x + 23 * dir}" y2="58" stroke-width="2"/>
       <ellipse cx="${x + 27 * dir}" cy="50" rx="6" ry="10" stroke-width="2"/></g>`;
   const side = (path, label, extra = '') => svg('0 0 300 150', `${defs}
-      <rect width="300" height="150" rx="14" fill="#e6f2ea"/>
+      <rect width="300" height="150" rx="14" fill="#eef5fb"/>
       <line x1="10" y1="130" x2="290" y2="130" stroke="${G8}" stroke-width="3"/>
       <rect x="148" y="92" width="4" height="38" fill="${G9}"/><rect x="145" y="90" width="10" height="4" rx="2" fill="#fff" stroke="${G9}"/>
       ${fig(40, 1)}${fig(262, -1)}${extra}
@@ -46,21 +46,21 @@ const ILLUS = (() => {
   };
   const handle = (cx, cy) => `<polygon points="${oct(cx, cy, 46)}" fill="#e9dcc3" stroke="${G9}" stroke-width="3"/>
       <circle cx="${cx}" cy="${cy}" r="4" fill="${G9}"/>`;
-  const grip = svg('0 0 300 150', `${defs}<rect width="300" height="150" rx="14" fill="#e6f2ea"/>
+  const grip = svg('0 0 300 150', `${defs}<rect width="300" height="150" rx="14" fill="#eef5fb"/>
       ${txt(75, 18, 'โฟร์แฮนด์', `fill="${G9}" font-size="13" font-weight="700"`)}
       ${txt(225, 18, 'แบ็กแฮนด์', `fill="${G9}" font-size="13" font-weight="700"`)}
       ${handle(75, 78)}${handle(225, 78)}
       <!-- forehand: V between thumb and index on the upper bevel -->
-      <path d="M45 52 L75 32 L105 52" fill="none" stroke="#e8508f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-      ${txt(75, 28, 'ร่อง V', `fill="#e8508f" font-weight="700"`)}
+      <path d="M45 52 L75 32 L105 52" fill="none" stroke="#e0508a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      ${txt(75, 28, 'ร่อง V', `fill="#e0508a" font-weight="700"`)}
       <!-- backhand: thumb flat on the broad face -->
-      <rect x="259" y="56" width="10" height="44" rx="5" fill="#2f7de1"/>
-      ${txt(285, 80, 'โป้ง', `fill="#2f7de1" font-weight="700" font-size="10"`)}
+      <rect x="259" y="56" width="10" height="44" rx="5" fill="#2f6fdc"/>
+      ${txt(285, 80, 'โป้ง', `fill="#2f6fdc" font-weight="700" font-size="10"`)}
       ${txt(75, 140, 'มุมมองปลายด้ามไม้ (โดยประมาณ)', `fill="${G8}" font-size="9.5"`)}
       ${txt(225, 140, 'นิ้วโป้งแนบด้านกว้าง', `fill="${G8}" font-size="9.5"`)}`);
 
   /* ---------- ready position ---------- */
-  const ready = svg('0 0 300 190', `${defs}<rect width="300" height="190" rx="14" fill="#e6f2ea"/>
+  const ready = svg('0 0 300 190', `${defs}<rect width="300" height="190" rx="14" fill="#eef5fb"/>
       <line x1="10" y1="172" x2="290" y2="172" stroke="${G8}" stroke-width="3"/>
       <g stroke="${G9}" stroke-width="5" stroke-linecap="round" fill="none">
         <circle cx="130" cy="42" r="12" fill="#fff"/><line x1="130" y1="54" x2="134" y2="105"/>
@@ -75,8 +75,8 @@ const ILLUS = (() => {
   /* ---------- split step: timeline ---------- */
   const box = (x, c, t1, t2) => `<rect x="${x}" y="40" width="86" height="70" rx="12" fill="${c}"/>
       ${txt(x + 43, 66, t1, `fill="#fff" font-weight="700" font-size="13"`)}${txt(x + 43, 88, t2, `fill="#fff" font-size="10.5"`)}`;
-  const split = svg('0 0 300 150', `${defs}<rect width="300" height="150" rx="14" fill="#e6f2ea"/>
-      ${box(10, '#58705f', '1. คู่แข่งตี', 'ยืนท่าเตรียม')}${box(107, G8, '2. ย่อกระโดด', 'ลงพื้นพร้อมกัน')}${box(204, G9, '3. ออกตัว', 'ไปทางที่ลูกมา')}
+  const split = svg('0 0 300 150', `${defs}<rect width="300" height="150" rx="14" fill="#eef5fb"/>
+      ${box(10, '#6b7a8c', '1. คู่แข่งตี', 'ยืนท่าเตรียม')}${box(107, G8, '2. ย่อกระโดด', 'ลงพื้นพร้อมกัน')}${box(204, G9, '3. ออกตัว', 'ไปทางที่ลูกมา')}
       <path d="M98 75 L106 75" stroke="${G8}" stroke-width="3" marker-end="url(#ad)"/><path d="M195 75 L203 75" stroke="${G8}" stroke-width="3" marker-end="url(#ad)"/>
       ${txt(150, 22, 'Split step', `fill="${G9}" font-size="14" font-weight="700"`)}
       ${txt(150, 134, 'จังหวะลงพื้น = จังหวะที่คู่แข่งกระทบลูก', `fill="${G8}" font-size="11"`)}`);
@@ -85,7 +85,7 @@ const ILLUS = (() => {
   const spots = [[48, 138], [172, 138], [40, 178], [180, 178], [48, 214], [172, 214]];
   const foot = court(`<rect x="20" y="10" width="180" height="110" fill="#000" opacity=".18"/>
       ${spots.map(([x, y]) => `<path d="M110 176 L${x + (110 - x) * .18} ${y + (176 - y) * .18}" stroke="${LIME}" stroke-width="2.5" marker-end="url(#ah)" stroke-dasharray="5 3"/>${dot(x, y, '#fff', 6)}`).join('')}
-      ${dot(110, 176, LIME, 11, '🏠')}
+      ${dot(110, 176, LIME, 11, 'H')}
       ${txt(110, 232, 'ออกไปตี แล้วกลับกลางคอร์ดทุกครั้ง', `fill="#fff" font-size="10"`)}`);
 
   /* ---------- serve ---------- */
@@ -101,15 +101,15 @@ const ILLUS = (() => {
       <g stroke="#fff" stroke-width="2" fill="none"><rect x="${x + 6}" y="36" width="118" height="138"/><line x1="${x}" y1="30" x2="${x + 130}" y2="30" stroke-width="5"/></g>
       ${ps.map(([px, py, l]) => dot(x + px, py, LIME, 11, l)).join('')}
       ${txt(x + 65, 198, title, `fill="${G9}" font-size="13" font-weight="700"`)}${txt(x + 65, 214, sub, `fill="${G8}" font-size="10.5"`)}`;
-  const doubles = svg('0 0 300 224', `${defs}<rect width="300" height="224" rx="14" fill="#e6f2ea"/>
+  const doubles = svg('0 0 300 224', `${defs}<rect width="300" height="224" rx="14" fill="#eef5fb"/>
       ${half(10, [[65, 80, 'A'], [65, 142, 'B']], 'รุก: หน้า-หลัง', 'ได้ลูกสูง ให้กดลง')}
       ${half(160, [[36, 95, 'A'], [94, 95, 'B']], 'รับ: ซ้าย-ขวา', 'ดูแลครึ่งสนามคนละฝั่ง')}
       ${txt(150, 20, 'ตำแหน่งยืนฝั่งเรา (เน็ตอยู่ด้านบน)', `fill="${G9}" font-size="11"`)}`);
 
   const midGap = court(`${dot(60, 175, LIME, 10, 'A')}${dot(160, 175, LIME, 10, 'B')}
-      <rect x="95" y="150" width="30" height="75" fill="#e8508f" opacity=".45"/>
+      <rect x="95" y="150" width="30" height="75" fill="#e0508a" opacity=".45"/>
       <path d="M110 60 L110 148" stroke="${LIME}" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#ah)"/>
-      ${dot(110, 40, '#fff', 10, '⚔')}
+      ${dot(110, 40, '#fff', 10, '')}
       ${txt(110, 232, 'ช่องกลางระหว่างสองคน = จุดอ่อน', `fill="#fff" font-size="10"`)}`);
 
   return {
