@@ -60,7 +60,7 @@
       <h2>สนับสนุนเว็บไซต์</h2>
       <p>ถ้าเว็บนี้ช่วยให้ก๊วนของคุณสนุกขึ้น สนับสนุนผู้พัฒนาได้ผ่าน QR นี้ (ไม่บังคับ ขอบคุณครับ)</p>
       <img class="qr" src="img/support-qr.jpg" alt="QR สนับสนุนเว็บไซต์ ผ่าน Thai QR Payment" loading="lazy">
-      <a class="qr-save" href="img/support-qr.jpg" download="support-qr.jpg">บันทึกรูป QR</a>
+      <button class="qr-save" id="btnQrSave" type="button">บันทึกรูป QR</button>
     </section>
   </main>
 
@@ -250,6 +250,12 @@
       </div>
     </form>
   </dialog>
+
+  <div id="qrViewer" class="viewer hidden" role="dialog" aria-modal="true" aria-label="QR สนับสนุนเว็บไซต์">
+    <img src="img/support-qr.jpg" alt="QR สนับสนุนเว็บไซต์">
+    <p>กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ" (Save Image)</p>
+    <button type="button" id="qrClose" class="primary">ปิด</button>
+  </div>
 
   <div id="toast" class="toast"></div>
   <script src="app.js"></script>

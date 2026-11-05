@@ -663,3 +663,50 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); box-shado
   padding: calc(18px + env(safe-area-inset-top)) 16px 10px;
   border-bottom: 1px solid var(--edge);
 }
+
+/* ===== pop-up notices: small, slide down from the top ===== */
+.toast {
+  position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top)); bottom: auto;
+  transform: translate(-50%, -170%); opacity: 0; z-index: 90; pointer-events: none;
+  display: flex; align-items: center; gap: 8px; max-width: min(90vw, 360px);
+  padding: 6px 14px 6px 7px; border-radius: 999px; border: 0; box-shadow: none;
+  background: #0b2a4a; color: #fff; font-size: 13.5px; font-weight: 500; line-height: 1.3;
+  transition: transform .35s cubic-bezier(.2,1.25,.4,1), opacity .22s;
+}
+.toast .tm { min-width: 0; overflow-wrap: anywhere; }
+.toast:not(:has(.ti)) { padding-left: 14px; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast .ti { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.25); }
+.toast .ti svg { width: 13px; height: 13px; fill: none; stroke: #fff; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+.toast.ok { background: #14a56a; }
+.toast.error, .toast.del { background: #dc3b43; }
+.toast.dupe { background: #f5b82e; color: #3a2a00; }
+.toast.dupe .ti { background: rgba(58,42,0,.16); }
+.toast.dupe .ti svg { stroke: #3a2a00; }
+
+/* toast sits under the header (z-index below it) so it appears to slide out from beneath */
+.toast { z-index: 25; }
+
+/* pop-ups: soft tinted background + stronger coloured edge */
+.toast { border: 1.5px solid #0b2a4a; background: #e8f1fb; color: #0b2a4a; }
+.toast .ti { background: #0b2a4a; }
+.toast .ti svg { stroke: #fff; }
+.toast.ok { background: #e3f7ee; border-color: #14a56a; color: #0a5c3b; }
+.toast.ok .ti { background: #14a56a; }
+.toast.error, .toast.del { background: #ffe9ea; border-color: #dc3b43; color: #8f1d25; }
+.toast.error .ti, .toast.del .ti { background: #dc3b43; }
+.toast.dupe { background: #fff5d9; border-color: #e3a400; color: #6a4800; }
+.toast.dupe .ti { background: #f2b21f; }
+.toast.dupe .ti svg { stroke: #4a3200; }
+:root[data-theme="dark"] .toast { background: #10243f; border-color: #6aa8ff; color: #e6f0fa; }
+:root[data-theme="dark"] .toast.ok { background: #0e2b23; border-color: #3ddc97; color: #c4f7df; }
+:root[data-theme="dark"] .toast.error, :root[data-theme="dark"] .toast.del { background: #331519; border-color: #ff6b73; color: #ffd0d3; }
+:root[data-theme="dark"] .toast.dupe { background: #342a0d; border-color: #ffcb3d; color: #ffeaa6; }
+
+/* QR viewer for long-press saving */
+.viewer { position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px; background: rgba(4,18,43,.94); }
+.viewer img { width: 100%; max-width: 440px; height: auto; border-radius: 8.2% / 13.6%; -webkit-touch-callout: default; -webkit-user-select: auto; user-select: auto; }
+.viewer p { margin: 0; color: #cfe8ff; font-size: 15px; text-align: center; }
+.support .qr-save { background: transparent; font-family: inherit; cursor: pointer; }
+
+.viewer img { max-height: 72vh; width: auto; max-width: 100%; border-radius: 6%; }

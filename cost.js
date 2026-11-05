@@ -210,7 +210,7 @@
   });
   $c('#cCopy').addEventListener('click', async () => {
     const text = summaryText(compute());
-    try { await navigator.clipboard.writeText(text); toast('คัดลอกแล้ว'); } catch (e) { prompt('คัดลอกข้อความนี้', text); }
+    try { await navigator.clipboard.writeText(text); toast('คัดลอกสำเร็จ', 'ok'); } catch (e) { prompt('คัดลอกข้อความนี้', text); }
   });
 
   /* ---------- init ---------- */

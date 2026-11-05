@@ -108,3 +108,99 @@ applyTheme(document.documentElement.dataset.theme || 'light');
 
 /* ---------- start: always open on the function hub ---------- */
 showTab('hub', true);
+
+/* ---------- save the support QR as a branded 3:4 card ---------- */
+async function renderQrCard() {
+  try { await Promise.all([document.fonts.load('600 30px Prompt'), document.fonts.load('700 30px Prompt')]); } catch (e) {}
+  const [logo, qr] = await Promise.all([loadImg('icons/icon-512.png'), loadImg('img/support-qr.jpg')]);
+  const FONT = 'Prompt, system-ui, sans-serif', W = 1080, H = 1440, S = 2, R = 64;     // 3:4 portrait
+  const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+  const ctx = cv.getContext('2d'); ctx.scale(S, S); ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  rr(ctx, 0, 0, W, H, R); ctx.clip();                                    // rounded outer shape, transparent corners
+
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#04122b'); bg.addColorStop(.55, '#0a3d9c'); bg.addColorStop(1, '#1a8cff');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W - 140, 120, 10, W - 140, 120, 620);
+  glow.addColorStop(0, 'rgba(95,227,255,.40)'); glow.addColorStop(1, 'rgba(95,227,255,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+  // faint badminton court as the backdrop
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.085)'; ctx.lineWidth = 4;
+  const cx = 90, cy = 90, cw = W - 180, ch = H - 180, mid = cy + ch / 2;
+  ctx.strokeRect(cx, cy, cw, ch);
+  ctx.beginPath();
+  ctx.moveTo(cx + 46, cy); ctx.lineTo(cx + 46, cy + ch); ctx.moveTo(cx + cw - 46, cy); ctx.lineTo(cx + cw - 46, cy + ch);
+  ctx.moveTo(cx, cy + 36); ctx.lineTo(cx + cw, cy + 36); ctx.moveTo(cx, cy + ch - 36); ctx.lineTo(cx + cw, cy + ch - 36);
+  ctx.moveTo(cx, mid - 150); ctx.lineTo(cx + cw, mid - 150); ctx.moveTo(cx, mid + 150); ctx.lineTo(cx + cw, mid + 150);
+  ctx.moveTo(cx + cw / 2, cy); ctx.lineTo(cx + cw / 2, mid - 150); ctx.moveTo(cx + cw / 2, mid + 150); ctx.lineTo(cx + cw / 2, cy + ch);
+  ctx.stroke(); ctx.lineWidth = 8; ctx.setLineDash([16, 12]);
+  ctx.beginPath(); ctx.moveTo(cx - 20, mid); ctx.lineTo(cx + cw + 20, mid); ctx.stroke();
+  ctx.restore();
+
+  // logo + wordmark
+  const LS = 132, lx = (W - LS) / 2, ly = 78;
+  ctx.save(); ctx.shadowColor = 'rgba(95,227,255,.75)'; ctx.shadowBlur = 40; ctx.fillStyle = '#0a3d9c'; rr(ctx, lx, ly, LS, LS, 32); ctx.fill(); ctx.restore();
+  if (logo) { ctx.save(); rr(ctx, lx, ly, LS, LS, 32); ctx.clip(); ctx.drawImage(logo, lx, ly, LS, LS); ctx.restore(); }
+  ctx.strokeStyle = 'rgba(190,235,255,.7)'; ctx.lineWidth = 3; rr(ctx, lx, ly, LS, LS, 32); ctx.stroke();
+  ctx.font = `700 52px ${FONT}`; ctx.textAlign = 'left';
+  const w1 = ctx.measureText('Badminton ').width, w2 = ctx.measureText('Pair').width, x0 = (W - w1 - w2) / 2;
+  ctx.fillStyle = '#fff'; ctx.fillText('Badminton', x0, 262); ctx.fillStyle = '#7fe9ff'; ctx.fillText('Pair', x0 + w1, 262);
+  ctx.textAlign = 'center';
+  const ln = ctx.createLinearGradient(W / 2 - 90, 0, W / 2 + 90, 0); ln.addColorStop(0, 'rgba(95,227,255,0)'); ln.addColorStop(.5, '#5fe3ff'); ln.addColorStop(1, 'rgba(95,227,255,0)');
+  ctx.fillStyle = ln; ctx.fillRect(W / 2 - 90, 308, 180, 5);
+
+  // heading
+  ctx.fillStyle = '#fff'; ctx.font = `700 70px ${FONT}`; ctx.fillText('สนับสนุนเว็บไซต์', W / 2, 392);
+  ctx.fillStyle = '#bfe3ff'; ctx.font = `500 31px ${FONT}`;
+  ctx.fillText('ถ้าเว็บนี้ช่วยให้ก๊วนสนุกขึ้น', W / 2, 470); ctx.fillText('สนับสนุนผู้พัฒนาได้ผ่าน QR นี้', W / 2, 514);
+
+  // QR card
+  const QW = 880, QH = qr ? Math.round(QW * qr.naturalHeight / qr.naturalWidth) : 530, qx = (W - QW) / 2, qy = 580, qr_r = QW * 0.082;
+  ctx.save(); ctx.shadowColor = 'rgba(0,15,70,.55)'; ctx.shadowBlur = 36; ctx.shadowOffsetY = 12;
+  ctx.fillStyle = '#0a3d9c'; rr(ctx, qx, qy, QW, QH, qr_r); ctx.fill(); ctx.restore();
+  if (qr) { ctx.save(); rr(ctx, qx, qy, QW, QH, qr_r); ctx.clip(); ctx.drawImage(qr, qx, qy, QW, QH); ctx.restore(); }
+
+  // footer
+  ctx.fillStyle = '#bfe3ff'; ctx.font = `500 29px ${FONT}`; ctx.fillText('สแกนผ่านแอปธนาคารเพื่อสนับสนุน ขอบคุณครับ', W / 2, qy + QH + 66);
+  ctx.fillStyle = '#7fe9ff'; ctx.font = `600 38px ${FONT}`; ctx.fillText('badminton-pair.vercel.app', W / 2, H - 150);
+  ctx.fillStyle = 'rgba(200,225,255,.7)'; ctx.font = `500 24px ${FONT}`; ctx.fillText('made with Badminton Pair', W / 2, H - 100);
+  return cv;
+}
+
+let qrBlob = null, qrUrl = null;
+async function getQrCard() {
+  if (qrBlob) return qrBlob;
+  const cv = await renderQrCard();
+  qrBlob = await new Promise(r => cv.toBlob(r, 'image/png'));
+  qrUrl = URL.createObjectURL(qrBlob);
+  return qrBlob;
+}
+
+async function saveQr() {
+  const btn = document.getElementById('btnQrSave'), old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'กำลังสร้างรูป…';
+  try {
+    const blob = await getQrCard();
+    const file = new File([blob], 'badminton-pair-support-qr.png', { type: 'image/png' });
+    // phones: system share sheet ("Save Image", Photos, LINE…)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'QR สนับสนุนเว็บไซต์' }); toast('บันทึกรูป QR สำเร็จ', 'ok'); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    // touch device without file sharing (in-app browsers): show the card to long-press and save
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      document.querySelector('#qrViewer img').src = qrUrl;
+      document.getElementById('qrViewer').classList.remove('hidden');
+      return;
+    }
+    // desktop: normal download
+    const a = document.createElement('a'); a.href = qrUrl; a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('บันทึกรูป QR สำเร็จ', 'ok');
+  } catch (e) { toast('สร้างรูปไม่สำเร็จ', 'error'); console.error(e); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+document.getElementById('btnQrSave').addEventListener('click', saveQr);
+document.getElementById('qrClose').addEventListener('click', () => document.getElementById('qrViewer').classList.add('hidden'));
+document.getElementById('qrViewer').addEventListener('click', e => { if (e.target.id === 'qrViewer') e.currentTarget.classList.add('hidden'); });

@@ -56,9 +56,24 @@ function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-function toast(msg) {
-  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2000);
+/* Top pop-up: 'ok' green tick · 'dupe' yellow ! · 'del' red bin · 'error' red cross · 'info' plain */
+const TOAST_ICON = {
+  ok: '<path d="M5 12.5l4.5 4.5L19 7"/>',                                   // green tick
+  error: '<path d="M6 6l12 12M18 6L6 18"/>',                                // red cross
+  dupe: '<path d="M12 6.5v7M12 17.5h.01"/>',                               // yellow "!"
+  del: '<path d="M5 7h14M10 7V4.8h4V7M7.5 7l.9 12h7.2l.9-12"/>',           // red bin
+};
+function toast(msg, type = 'info') {
+  const t = $('#toast');
+  t.className = 'toast ' + type;                       // drops .show so it can slide in again
+  t.innerHTML = (TOAST_ICON[type] ? `<span class="ti"><svg viewBox="0 0 24 24">${TOAST_ICON[type]}</svg></span>` : '') + '<span class="tm"></span>';
+  t.querySelector('.tm').textContent = msg;
+  // slide out from just under the pinned title bar (home page has no bar -> CSS default at the top)
+  const bar = document.querySelector('.topbar');
+  t.style.top = bar && bar.offsetParent !== null ? Math.round(bar.getBoundingClientRect().bottom + 8) + 'px' : '';
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600);
 }
 const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -264,10 +279,10 @@ function renderRules() {
   });
 }
 
-function addPlayer(name, g, lv = 2) {
+function addPlayer(name, g, lv = 2, quiet = false) {
   name = name.trim();
   if (!name) return false;
-  if (state.players.some(p => p.name === name)) { toast('มีชื่อนี้อยู่แล้ว'); return false; }
+  if (state.players.some(p => p.name === name)) { if (!quiet) toast(`ชื่อ "${name}" มีอยู่แล้ว`, 'dupe'); return false; }
   state.players.push({ id: uid(), name, g, lv });
   return true;
 }
@@ -291,8 +306,9 @@ function bindSetup() {
   renderDraft();
   $('#addForm').addEventListener('submit', e => {
     e.preventDefault();
-    if (addPlayer($('#nameInput').value, draft.g, draft.lv)) {
-      $('#nameInput').value = ''; save(); renderSetup();
+    const name = $('#nameInput').value.trim();
+    if (addPlayer(name, draft.g, draft.lv)) {
+      $('#nameInput').value = ''; save(); renderSetup(); toast(`เพิ่ม "${name}" สำเร็จ`, 'ok');
     }
     $('#nameInput').focus();
   });
@@ -301,7 +317,11 @@ function bindSetup() {
     const gb = e.target.closest('[data-id]'), lb = e.target.closest('[data-lv]'), del = e.target.closest('[data-del]');
     if (gb) { const p = state.players.find(x => x.id === gb.dataset.id); p.g = p.g === 'M' ? 'F' : 'M'; }
     if (lb) { const p = state.players.find(x => x.id === lb.dataset.lv); p.lv = p.lv % 3 + 1; }
-    if (del) state.players = state.players.filter(x => x.id !== del.dataset.del);
+    if (del) {
+      const gone = state.players.find(x => x.id === del.dataset.del);
+      state.players = state.players.filter(x => x.id !== del.dataset.del);
+      if (gone) toast(`ลบ "${gone.name}" สำเร็จ`, 'del');
+    }
     if (gb || lb || del) { save(); renderSetup(); }
   });
 
@@ -311,13 +331,13 @@ function bindSetup() {
   });
 
   $('#btnClear').addEventListener('click', () => {
-    if (state.players.length && confirm('ล้างรายชื่อผู้เล่นทั้งหมด?')) { state.players = []; save(); renderSetup(); }
+    if (state.players.length && confirm('ล้างรายชื่อผู้เล่นทั้งหมด?')) { state.players = []; save(); renderSetup(); toast('ล้างรายชื่อทั้งหมดสำเร็จ', 'del'); }
   });
 
   const dlg = $('#bulkDialog');
   $('#btnBulk').addEventListener('click', () => { $('#bulkText').value = ''; dlg.showModal(); });
   $('#bulkOk').addEventListener('click', () => {
-    let added = 0;
+    let added = 0, dup = 0;
     $('#bulkText').value.split(/\r?\n/).forEach(line => {
       const t = line.trim().split(/[\s,]+/).filter(Boolean); if (!t.length) return;
       let g = 'M', lv = 2;
@@ -331,9 +351,11 @@ function bindSetup() {
         else break;
         t.pop();
       }
-      if (addPlayer(t.join(' '), g, lv)) added++;
+      if (addPlayer(t.join(' '), g, lv, true)) added++; else if (state.players.some(p => p.name === t.join(' ').trim())) dup++;
     });
-    save(); renderSetup(); toast(`เพิ่ม ${added} คน`);
+    save(); renderSetup();
+    if (added) toast(`เพิ่ม ${added} คนสำเร็จ` + (dup ? ` (ชื่อซ้ำ ${dup} คน)` : ''), 'ok');
+    else if (dup) toast(`ชื่อซ้ำทั้งหมด ${dup} คน`, 'dupe');
   });
 
   $('#btnGo').addEventListener('click', start);
@@ -460,7 +482,7 @@ function bindResult() {
   $('#btnSave').addEventListener('click', saveImage);
   $('#btnShare').addEventListener('click', async () => {
     const text = scheduleText();
-    try { await navigator.clipboard.writeText(text); toast('คัดลอกแล้ว ✓'); }
+    try { await navigator.clipboard.writeText(text); toast('คัดลอกสำเร็จ', 'ok'); }
     catch (e) { prompt('คัดลอกข้อความนี้', text); }
   });
 
@@ -645,16 +667,16 @@ async function saveImage() {
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     const file = new File([blob], 'badminton-pair.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'Badminton Pair' }); }
+      try { await navigator.share({ files: [file], title: 'Badminton Pair' }); toast('บันทึกรูปสำเร็จ', 'ok'); }
       catch (e) { if (e.name !== 'AbortError') throw e; }
     } else {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = 'badminton-pair.png';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      toast('บันทึกรูปแล้ว ✓');
+      toast('บันทึกรูปสำเร็จ', 'ok');
     }
-  } catch (e) { toast('สร้างรูปไม่สำเร็จ'); console.error(e); }
+  } catch (e) { toast('สร้างรูปไม่สำเร็จ', 'error'); console.error(e); }
   btn.disabled = false; btn.textContent = old;
 }
 
