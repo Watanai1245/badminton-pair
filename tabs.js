@@ -28,6 +28,8 @@ function showTab(view, fromPop = false) {
   currentView = view;
   if (view !== 'hub') currentFeature = view;
 
+  document.body.classList.toggle('is-hub', view === 'hub');
+  setBarColor();
   document.getElementById('view-hub').classList.toggle('hidden', view !== 'hub');
   FEATURES.forEach(f => document.getElementById('view-' + f.id).classList.toggle('hidden', f.id !== view));
   document.body.dataset.tab = view;
@@ -35,7 +37,6 @@ function showTab(view, fromPop = false) {
   // header
   document.getElementById('btnHome').classList.toggle('hidden', view === 'hub');
   document.getElementById('pageTitle').textContent = view === 'hub' ? 'Badminton Pair' : feat(view).name;
-  document.getElementById('brandLogo').classList.toggle('hidden', view !== 'hub');
 
   if (view !== 'hub' && !fromPop) history.pushState({ v: view }, '');
   window.scrollTo({ top: 0 });
@@ -44,8 +45,13 @@ function showTab(view, fromPop = false) {
 }
 
 /* launcher grid */
-document.getElementById('hubGrid').innerHTML = FEATURES.map(f =>
-  `<button type="button" class="tile" data-go="${f.id}"><span class="ico">${svgIcon(f.icon)}</span><b>${f.name}</b><small>${f.desc}</small></button>`).join('');
+const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+document.getElementById('hubGrid').innerHTML = FEATURES.map((f, i) =>
+  `<button type="button" class="tile${i === 0 ? ' feat' : ''}" data-go="${f.id}">
+     <span class="ico">${svgIcon(f.icon)}</span>
+     <b>${f.name}</b><small>${f.desc}</small>
+     <span class="go">${ARROW}</span>
+   </button>`).join('');
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-go]'); if (b) showTab(b.dataset.go);
@@ -83,16 +89,21 @@ function beep(freq = 880, ms = 160) {
 }
 
 /* ---------- theme ---------- */
+function setBarColor() {
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (!m) return;
+  const dark = document.documentElement.dataset.theme === 'dark';
+  m.content = document.body.classList.contains('is-hub') ? (dark ? '#04122b' : '#e6f2ff') : (dark ? '#050f20' : '#eaf4ff');
+}
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.content = t === 'dark' ? '#0f2a4a' : '#087abf';
+  setBarColor();
 }
-document.getElementById('btnTheme').addEventListener('click', () => {
+document.querySelectorAll('.js-theme').forEach(b => b.addEventListener('click', () => {
   const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   applyTheme(t);
   try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* ignore */ }
-});
+}));
 applyTheme(document.documentElement.dataset.theme || 'light');
 
 /* ---------- start: always open on the function hub ---------- */

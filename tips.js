@@ -153,6 +153,26 @@
     },
   ];
 
+  const PHOTOS = {
+    'เคลียร์ (Clear)': { k: 'smash-seq', cap: 'ลำดับการตีเหนือศีรษะ ใช้ท่าตัวเหมือนกันทั้งเคลียร์และสแมช' },
+    'สแมช (Smash)': { k: 'smash-seq', cap: 'ลำดับการตีสแมช: เตรียมไม้ ตีที่จุดสูงสุด และตามไม้ลง' },
+    'เสิร์ฟสั้น (ประเภทคู่)': { k: 'serve-double', cap: 'การเสิร์ฟทแยงในประเภทคู่ (ผู้เสิร์ฟ A1 ไปยังผู้รับ B1)' },
+    'Split step': { k: 'split-step', cap: 'ภาพมุมบน: รอยเท้าตอนย่อกระโดดและออกตัวไปทางที่ลูกมา' },
+    'กลับตำแหน่งกลางสนาม': { k: 'home-t', cap: 'จุดสีแดงรูปตัว T คือตำแหน่งกลางสนามที่ควรกลับไปหลังตี' },
+    'ตำแหน่งยืน': { k: 'doubles-defence-anim', cap: 'ภาพมุมบนแสดงตำแหน่งยืนของคู่แข่งทั้งสองทีมในประเภทคู่ (แอนิเมชัน)' },
+  };
+  const MORE = {
+    grip: [{ t: 'Sikana: การจับไม้โฟร์แฮนด์ (วิดีโอ)', u: 'https://sikana.tv/en/sport/badminton/how-to-hold-the-forehand-grip' },
+           { t: 'Sikana: การจับไม้แบ็กแฮนด์ (วิดีโอ)', u: 'https://www.sikana.tv/en/sport/how-to-hold-the-backhand-grip' }],
+    foot: [{ t: 'Badminton Insight: The split step (มีภาพประกอบ)', u: 'https://badminton-insight.com/the-split-step/' },
+           { t: 'Badminton Insight: ฟุตเวิร์ก 4 มุม (ทีละขั้นพร้อมภาพ)', u: 'https://badminton-insight.com/4-corner-footwork/' }],
+    shots: [{ t: 'Sikana: ดรอปและเคลียร์ (วิดีโอ)', u: 'https://www.sikana.tv/en/sport/improve-your-dropshots-and-clears' },
+            { t: 'ActiveSG: ลูกตีแบบต่างๆ และเมื่อไหร่ควรใช้', u: 'https://www.activesgcircle.gov.sg/learn/badminton/the-different-types-of-badminton-shots-and-when-to-use-them' }],
+    doubles: [{ t: 'The Badminton Bible: ตำแหน่งยืนประเภทคู่', u: 'https://badmintonbible.com/tactics/doubles/positions' }],
+    safe: [{ t: 'Sikana: วอร์มอัพ (วิดีโอ)', u: 'https://www.sikana.tv/en/sport/how-to-warm-up' },
+           { t: 'Sikana: คูลดาวน์ (วิดีโอ)', u: 'https://sikana.tv/en/sport/badminton/how-to-cool-down' }],
+  };
+
   const $t = s => document.querySelector(s);
   const E = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   let cur = TIPS[0].id;
@@ -163,9 +183,12 @@
     const sec = TIPS.find(t => t.id === cur);
     $t('#tipBody').innerHTML = sec.cards.map(c => `<div class="card tip">
         <h3>${E(c.h)}</h3>
+        ${PHOTOS[c.h] ? `<figure class="photo"><img src="${IMG[PHOTOS[c.h].k].src}" alt="${E(PHOTOS[c.h].cap)}" loading="lazy"><figcaption>${E(PHOTOS[c.h].cap)}</figcaption></figure>` : ''}
         ${typeof ILLUS !== 'undefined' && ILLUS[c.h] ? `<div class="illus">${ILLUS[c.h]}</div>` : ''}
         <ul>${c.p.map(x => `<li>${E(x)}</li>`).join('')}</ul>
         <div class="key">${E(c.k)}</div></div>`).join('');
+    const used = sec.cards.map(c => PHOTOS[c.h] && PHOTOS[c.h].k).filter(Boolean);
+    $t('#tipMore').innerHTML = linksHTML('ดูเพิ่มเติม', MORE[sec.id]) + creditsHTML([...new Set(used)]);
   }
   $t('#tipChips').addEventListener('click', e => {
     const b = e.target.closest('button[data-id]'); if (!b) return;

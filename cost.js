@@ -134,7 +134,7 @@
 
   function summaryText(r) {
     const lines = ['ค่าสนาม (ประมาณ ปัดขึ้นเป็นบาทเต็ม)', `สนาม ${baht(r.courtTotal)} + ลูก ${baht(r.shuttleTotal)} = ${baht(r.courtTotal + r.shuttleTotal)}`];
-    if (cs.mode === 'names') ppl().forEach(p => lines.push(`${p.name}: ${approx(r.costFor(p.h.map((v, i) => (v ? i : -1)).filter(i => i >= 0)))}`));
+    if (cs.mode === 'names') ppl().forEach(p => { const idx = p.h.map((v, i) => (v ? i : -1)).filter(i => i >= 0); lines.push(`${p.name} (${idx.length ? dur(idx.length * BLOCK) : 'ไม่ได้เล่น'}): ${approx(r.costFor(idx))}`); });
     else groupsByHours(r).forEach(g => lines.push(`เล่น ${dur(g.d)}: ≈ ฿${g.cost.toLocaleString('th-TH')} ต่อคน`));
     return lines.join('\n');
   }
@@ -152,8 +152,8 @@
       const rows = ppl().map(p => {
         const idx = p.h.map((v, i) => (v ? i : -1)).filter(i => i >= 0), c = idx.length ? up(r.costFor(idx)) : 0;
         sum += c;
-        const when = gs.filter(g => p.h.slice(g.a, g.b).every(Boolean)).map(gLabel);
-        const t = when.length === gs.length ? 'ทุกช่วง' : when.length ? 'ชม. ' + when.join(', ') : 'ไม่ได้เล่น';
+        const played = idx.length * BLOCK;                         // total time on court
+        const t = played ? dur(played) : 'ไม่ได้เล่น';
         return `<div class="kv person"><span>${E(p.name)} <small>${t}</small></span><b>≈ ฿${c.toLocaleString('th-TH')}</b></div>`;
       }).join('');
       html += rows || '<p class="hint">ยังไม่มีรายชื่อ</p>';

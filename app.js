@@ -14,7 +14,7 @@ const RULES = [
 const LEVELS = ['', 'เริ่มต้น', 'ปานกลาง', 'เก่ง'];
 const SKILL_MODES = [
   { key: 'random', title: 'สุ่มปกติ', desc: 'ไม่สนใจระดับฝีมือ' },
-  { key: 'close', title: 'ระดับใกล้กัน', desc: 'จับเฉพาะคนระดับเดียวกัน ไม่ข้ามระดับ และหยุดเมื่อแต่ละระดับจับคู่กันครบ' },
+  { key: 'close', title: 'ระดับใกล้กัน', desc: 'จับคนระดับเดียวกัน ระดับไหนมีไม่ถึง 4 คนให้ยืมคนระดับปานกลางมาช่วย (ไม่จับเริ่มต้นกับเก่งด้วยกัน) และหยุดเมื่อแต่ละกลุ่มจับคู่กันครบ' },
   { key: 'balance', title: 'ถ่วงสมดุล', desc: 'จับเก่งคู่กับอ่อน ให้สองทีมสูสีกัน' },
 ];
 
@@ -79,6 +79,33 @@ const allowedPairs = (players, rules) => {
   return out;
 };
 
+/* "similar level" grouping. Each level plays among itself. A level with fewer than 4 players
+   borrows players from the ADJACENT middle level (beginner+medium or medium+advanced; beginner
+   and advanced never share a match). We pick the split that lets the most players play, using
+   as few borrowed players as possible. */
+function levelGroups(players) {
+  const L = [1, 2, 3].map(l => players.filter(p => p.lv === l));
+  const mid = shuffle(L[1]);
+  let best = null;
+  for (let x = 0; x <= mid.length; x++) for (let y = 0; x + y <= mid.length; y++) {
+    const m = mid.length - x - y;
+    const gs = [
+      { name: 'low', g: [...L[0], ...mid.slice(0, x)], mixed: L[0].length > 0 && x > 0 },
+      { name: 'mid', g: mid.slice(x, x + m), mixed: false },
+      { name: 'high', g: [...L[2], ...mid.slice(x + m)], mixed: L[2].length > 0 && y > 0 },
+    ];
+    const covered = gs.reduce((a, o) => a + (o.g.length >= 4 ? o.g.length : 0), 0);
+    const borrowed = gs.reduce((a, o) => a + (o.mixed ? (o.name === 'low' ? x : y) : 0), 0);
+    if (!best || covered > best.covered || (covered === best.covered && borrowed < best.borrowed)) best = { gs, covered, borrowed };
+  }
+  const groups = best.gs.map(o => o.g).filter(g => g.length);
+  const notes = [];
+  best.gs.forEach(o => {
+    if (o.mixed && o.g.length >= 4) notes.push(`ระดับ${o.name === 'low' ? 'เริ่มต้น' : 'เก่ง'}มีไม่ถึง 4 คน จึงรวมกับระดับปานกลางที่ติดกัน`);
+  });
+  return { groups, notes };
+}
+
 function generateSchedule(players, rules, skill = 'random') {
   const games = {}, lastPlayed = {}, partner = {}, opp = {};
   players.forEach(p => { games[p.id] = 0; lastPlayed[p.id] = -1; partner[p.id] = {}; opp[p.id] = {}; });
@@ -123,14 +150,15 @@ function generateSchedule(players, rules, skill = 'random') {
     return { total, matches };
   };
 
-  /* "ระดับใกล้กัน": each level is its own pool. Levels never mix, and a pool stops
-     playing as soon as all of its own partnerships are done. Other modes use one pool. */
-  const pools = (skill === 'close' ? [1, 2, 3].map(l => players.filter(p => p.lv === l)) : [players])
-    .filter(g => g.length).map(g => ({ g, allowed: allowedPairs(g, rules), done: false }));
+  /* "ระดับใกล้กัน": each level group is its own pool. Levels only mix when a level is too small,
+     and a pool stops playing as soon as all of its own partnerships are done. */
+  const lg = skill === 'close' ? levelGroups(players) : { groups: [players], notes: [] };
+  lg.notes.forEach(t => warnings.add(t));
+  const pools = lg.groups.map(g => ({ g, allowed: allowedPairs(g, rules), done: false }));
   pools.forEach(pl => {
     if (pl.g.length < 4) {
       pl.done = true;
-      warnings.add(`ระดับ${LEVELS[pl.g[0].lv]}มีไม่ถึง 4 คน จึงไม่ได้จับคู่ (${pl.g.map(p => p.name).join(', ')})`);
+      warnings.add(`มีผู้เล่นไม่พอจะจับคู่ (${pl.g.map(p => p.name).join(', ')})`);
     }
   });
   const poolCovered = pl => pl.allowed.every(([a, b]) => pc(a, b) > 0);
@@ -188,7 +216,7 @@ function generateSchedule(players, rules, skill = 'random') {
 
 /* minimum rounds needed for a full cycle (used for the hint on the setup page) */
 function minRounds(players, rules, skill) {
-  const groups = skill === 'close' ? [1, 2, 3].map(l => players.filter(p => p.lv === l)) : [players];
+  const groups = skill === 'close' ? levelGroups(players).groups : [players];
   return Math.max(0, ...groups.filter(g => g.length >= 4)
     .map(g => Math.ceil(allowedPairs(g, rules).length / (Math.floor(g.length / 4) * 2))));
 }
@@ -357,7 +385,7 @@ function applySchedule() {
   if (state.schedule.warnings.length) {
     w.innerHTML = state.schedule.warnings.join('<br>'); w.classList.remove('hidden');
   } else w.classList.add('hidden');
-  renderChips(); renderStats();
+  renderChips();
 }
 
 function renderChips() {
@@ -370,15 +398,6 @@ function renderChips() {
   });
 }
 
-function renderStats() {
-  const { games } = state.schedule;
-  const max = Math.max(1, ...Object.values(games));
-  $('#stats').innerHTML = state.players.slice()
-    .sort((a, b) => games[b.id] - games[a.id])
-    .map(p => `<div class="stat"><span class="nm">${esc(p.name)}</span>
-      <span class="bar"><i class="${p.g}" style="width:${(games[p.id] / max) * 100}%"></i></span>
-      <span class="n">${games[p.id]}</span></div>`).join('');
-}
 
 const GENDER_SVG = {
   M: '<circle cx="10" cy="14" r="5"/><path d="M14 10l6-6M15 4h5v5"/>',
@@ -469,46 +488,101 @@ function fit(ctx, text, maxW) {
   return text + '…';
 }
 
+const loadImg = src => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+
+/* The shareable picture: a branded "web page" card with rounded corners (transparent outside),
+   a court-line header, one card per round, and the support QR at the bottom. */
 async function renderImage() {
   try { await Promise.all([document.fonts.load('600 26px Prompt'), document.fonts.load('700 26px Prompt')]); } catch (e) {}
+  const [logo, qr] = await Promise.all([loadImg('icons/icon-512.png'), loadImg('img/support-qr.jpg')]);
   const FONT = 'Prompt, system-ui, sans-serif';
-  const W = 1080, PAD = 36, CW = W - PAD * 2, S = 2;
-  const COL = { m: '#2f6fdc', f: '#e0508a', g9: '#0b2a4a', g8: '#087abf', lime: '#bfe8ff' };
+  const W = 1080, PAD = 40, CW = W - PAD * 2, R = 64;
+  const COL = { m: '#2f6fdc', f: '#e0508a', g9: '#0b2a4a', g8: '#087abf', lime: '#bfe8ff', neon: '#5fe3ff' };
   const rounds = state.schedule.rounds;
-  const HEAD = 190, ROW = 92, RH = 62, GAP = 22;
+  const HEAD = 330, ROW = 92, RH = 62, GAP = 22;
+  const QW = 640, QH = qr ? Math.round(QW * qr.naturalHeight / qr.naturalWidth) : 0;
+  const FOOT = qr ? 146 + QH + 130 : 150;
 
   const cardH = rounds.map(rd => 64 + rd.matches.length * ROW + 16);
-  const H = HEAD + cardH.reduce((a, b) => a + b + GAP, 0) + 80;
+  const H = HEAD + GAP + cardH.reduce((a, b) => a + b + GAP, 0) + FOOT + PAD;
 
   const cv = document.createElement('canvas');
-  cv.width = W * S; cv.height = H * S;
+  // 2x for sharpness, but stay well under iPhone's ~16.7M-pixel canvas limit on long schedules
+  const S = Math.min(2, Math.sqrt(12e6 / (W * H)));
+  cv.width = Math.round(W * S); cv.height = Math.round(H * S);
   const ctx = cv.getContext('2d'); ctx.scale(S, S);
   ctx.textBaseline = 'middle';
 
-  ctx.fillStyle = '#f6f9fc'; ctx.fillRect(0, 0, W, H);
-  const g = ctx.createLinearGradient(0, 0, W, HEAD);
-  g.addColorStop(0, COL.g9); g.addColorStop(.7, COL.g8); g.addColorStop(1, '#1ba7e3');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, HEAD);
-  ctx.fillStyle = COL.lime; ctx.fillRect(0, HEAD - 6, W, 6);
-  ctx.fillStyle = '#fff'; ctx.font = `700 54px ${FONT}`; ctx.fillText('Badminton Pair', PAD, 72);
-  ctx.font = `500 26px ${FONT}`; ctx.fillStyle = COL.lime;
-  const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-  ctx.fillText(`${dateStr}  •  ${state.players.length} คน  •  ${rounds.length} รอบ`, PAD, 126);
+  // rounded outer shape: everything outside stays transparent
+  rr(ctx, 0, 0, W, H, R); ctx.clip();
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#eef5ff'); bg.addColorStop(1, '#dcebff');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-  let y = HEAD + GAP + 4;
+  /* ---------- header ---------- */
+  const hg = ctx.createLinearGradient(0, 0, W, HEAD);
+  hg.addColorStop(0, '#04122b'); hg.addColorStop(.55, '#0a3d9c'); hg.addColorStop(1, '#1a8cff');
+  ctx.fillStyle = hg; ctx.fillRect(0, 0, W, HEAD);
+  const glow = ctx.createRadialGradient(W - 120, 40, 10, W - 120, 40, 460);
+  glow.addColorStop(0, 'rgba(95,227,255,.45)'); glow.addColorStop(1, 'rgba(95,227,255,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, HEAD);
+  // court lines motif
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 3;
+  const cx0 = 790, cy0 = 112, cw = 230, ch = 184, cm = cy0 + ch / 2;
+  ctx.strokeRect(cx0, cy0, cw, ch);
+  ctx.beginPath();
+  ctx.moveTo(cx0 + 22, cy0); ctx.lineTo(cx0 + 22, cy0 + ch); ctx.moveTo(cx0 + cw - 22, cy0); ctx.lineTo(cx0 + cw - 22, cy0 + ch);
+  ctx.moveTo(cx0, cy0 + 16); ctx.lineTo(cx0 + cw, cy0 + 16); ctx.moveTo(cx0, cy0 + ch - 16); ctx.lineTo(cx0 + cw, cy0 + ch - 16);
+  ctx.moveTo(cx0, cm - 48); ctx.lineTo(cx0 + cw, cm - 48); ctx.moveTo(cx0, cm + 48); ctx.lineTo(cx0 + cw, cm + 48);
+  ctx.moveTo(cx0 + cw / 2, cy0); ctx.lineTo(cx0 + cw / 2, cm - 48); ctx.moveTo(cx0 + cw / 2, cm + 48); ctx.lineTo(cx0 + cw / 2, cy0 + ch);
+  ctx.stroke();
+  ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.setLineDash([10, 8]);
+  ctx.beginPath(); ctx.moveTo(cx0 - 14, cm); ctx.lineTo(cx0 + cw + 14, cm); ctx.stroke();
+  ctx.restore();
+  // logo
+  ctx.save(); ctx.shadowColor = 'rgba(95,227,255,.75)'; ctx.shadowBlur = 34;
+  ctx.fillStyle = '#0a3d9c'; rr(ctx, PAD, 44, 150, 150, 36); ctx.fill(); ctx.restore();
+  if (logo) { ctx.save(); rr(ctx, PAD, 44, 150, 150, 36); ctx.clip(); ctx.drawImage(logo, PAD, 44, 150, 150); ctx.restore(); }
+  ctx.strokeStyle = 'rgba(190,235,255,.7)'; ctx.lineWidth = 3; rr(ctx, PAD, 44, 150, 150, 36); ctx.stroke();
+  // title
+  ctx.font = `700 66px ${FONT}`; ctx.fillStyle = '#fff'; ctx.fillText('Badminton', PAD + 180, 96);
+  const tw = ctx.measureText('Badminton ').width; ctx.fillStyle = '#7fe9ff'; ctx.fillText('Pair', PAD + 180 + tw, 96);
+  ctx.font = `500 27px ${FONT}`; ctx.fillStyle = '#bfe3ff'; ctx.fillText('ตารางจับคู่แบดมินตันประเภทคู่', PAD + 182, 154);
+  // info chips
+  const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+  let chipX = PAD;
+  [dateStr, `${state.players.length} คน`, `${rounds.length} รอบ`].forEach(t => {
+    ctx.font = `600 25px ${FONT}`; const w = ctx.measureText(t).width + 44;
+    ctx.fillStyle = 'rgba(255,255,255,.14)'; rr(ctx, chipX, 238, w, 52, 26); ctx.fill();
+    ctx.strokeStyle = 'rgba(190,235,255,.45)'; ctx.lineWidth = 2; rr(ctx, chipX, 238, w, 52, 26); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.fillText(t, chipX + 22, 265); chipX += w + 14;
+  });
+  const edge = ctx.createLinearGradient(0, 0, W, 0); edge.addColorStop(0, COL.neon); edge.addColorStop(1, '#1a8cff');
+  ctx.fillStyle = edge; ctx.fillRect(0, HEAD - 6, W, 6);
+
+  /* ---------- rounds ---------- */
+  let y = HEAD + GAP + 14;
   rounds.forEach((rd, i) => {
     const h = cardH[i];
-    ctx.save(); ctx.shadowColor = 'rgba(11,42,74,.12)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
-    ctx.fillStyle = '#fff'; rr(ctx, PAD, y, CW, h, 24); ctx.fill(); ctx.restore();
-    // round header
-    ctx.fillStyle = COL.g8; rr(ctx, PAD, y, CW, 52, 24); ctx.fill();
-    ctx.fillRect(PAD, y + 26, CW, 26);
-    ctx.fillStyle = '#fff'; ctx.font = `700 28px ${FONT}`; ctx.fillText(`รอบที่ ${i + 1}`, PAD + 24, y + 27);
+    ctx.save(); ctx.shadowColor = 'rgba(10,80,190,.16)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 5;
+    ctx.fillStyle = '#fff'; rr(ctx, PAD, y, CW, h, 26); ctx.fill(); ctx.restore();
+    ctx.strokeStyle = '#cfe2f6'; ctx.lineWidth = 2; rr(ctx, PAD, y, CW, h, 26); ctx.stroke();
+    // round header bar
+    const rg = ctx.createLinearGradient(PAD, 0, PAD + CW, 0); rg.addColorStop(0, COL.g9); rg.addColorStop(1, '#0a5fd6');
+    ctx.fillStyle = rg; rr(ctx, PAD, y, CW, 52, 26); ctx.fill(); ctx.fillRect(PAD, y + 26, CW, 26);
+    ctx.fillStyle = COL.neon; ctx.beginPath(); ctx.arc(PAD + 28, y + 26, 7, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = `700 28px ${FONT}`; ctx.fillText(`รอบที่ ${i + 1}`, PAD + 48, y + 27);
+    ctx.fillStyle = COL.lime; ctx.font = `500 22px ${FONT}`; ctx.textAlign = 'right';
+    ctx.fillText(`${rd.matches.length} คู่`, PAD + CW - 26, y + 27); ctx.textAlign = 'left';
 
     let ry = y + 64;
     rd.matches.forEach(m => {
       ctx.fillStyle = COL.g9; ctx.font = `700 22px ${FONT}`; ctx.fillText(`คู่ที่ ${m.court}`, PAD + 20, ry + RH / 2 + 4);
       const bx = PAD + 130, bw = (CW - 130 - 20 - 70) / 2;
+      const vx = bx + bw + 35;
+      // net: dashed line between the two sides
+      ctx.save(); ctx.strokeStyle = '#a9cbe8'; ctx.lineWidth = 3; ctx.setLineDash([7, 6]);
+      ctx.beginPath(); ctx.moveTo(vx, ry - 8); ctx.lineTo(vx, ry + RH + 8); ctx.stroke(); ctx.restore();
       [[m.a, bx], [m.b, bx + bw + 70]].forEach(([team, x]) => {
         ctx.fillStyle = '#eef5fb'; rr(ctx, x, ry, bw, RH, 16); ctx.fill();
         team.forEach((p, k) => {
@@ -530,16 +604,36 @@ async function renderImage() {
           ctx.fillStyle = '#0f2238'; ctx.font = `600 25px ${FONT}`; ctx.fillText(fit(ctx, p.name, bw - 96), x + 40, cy + 1);
         });
       });
-      const vx = bx + bw + 35;
-      ctx.fillStyle = COL.lime; ctx.beginPath(); ctx.arc(vx, ry + RH / 2, 24, 0, 7); ctx.fill();
+      const vg = ctx.createLinearGradient(vx - 24, 0, vx + 24, 0); vg.addColorStop(0, '#bfe8ff'); vg.addColorStop(1, '#7fd0ff');
+      ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(vx, ry + RH / 2, 24, 0, 7); ctx.fill();
       ctx.strokeStyle = COL.g9; ctx.lineWidth = 3; ctx.stroke();
       ctx.fillStyle = COL.g9; ctx.font = `800 20px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText('VS', vx, ry + RH / 2 + 1); ctx.textAlign = 'left';
       ry += ROW;
     });
     y += h + GAP;
   });
-  ctx.fillStyle = '#6b7a8c'; ctx.font = `500 20px ${FONT}`; ctx.textAlign = 'center';
-  ctx.fillText('made with Badminton Pair', W / 2, H - 36);
+
+  /* ---------- support footer ---------- */
+  const fg = ctx.createLinearGradient(0, y, W, y + FOOT);
+  fg.addColorStop(0, '#04122b'); fg.addColorStop(.6, '#0a3d9c'); fg.addColorStop(1, '#1a8cff');
+  ctx.save(); ctx.shadowColor = 'rgba(10,80,190,.3)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 6;
+  ctx.fillStyle = fg; rr(ctx, PAD, y, CW, FOOT, 40); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = 'rgba(190,235,255,.4)'; ctx.lineWidth = 2; rr(ctx, PAD, y, CW, FOOT, 40); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff'; ctx.font = `700 36px ${FONT}`; ctx.fillText('สนับสนุนเว็บไซต์', W / 2, y + 56);
+  ctx.fillStyle = '#bfe3ff'; ctx.font = `500 22px ${FONT}`;
+  ctx.fillText('ถ้าเว็บนี้ช่วยให้ก๊วนสนุกขึ้น สนับสนุนผู้พัฒนาได้ผ่าน QR นี้', W / 2, y + 104);
+  let ty = y + 146;
+  if (qr) {
+    const qx = (W - QW) / 2;
+    ctx.save(); ctx.shadowColor = 'rgba(0,20,80,.5)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+    ctx.fillStyle = '#0a3d9c'; rr(ctx, qx, ty, QW, QH, QW * 0.082); ctx.fill(); ctx.restore();
+    ctx.save(); rr(ctx, qx, ty, QW, QH, QW * 0.082); ctx.clip(); ctx.drawImage(qr, qx, ty, QW, QH); ctx.restore();
+    ty += QH;
+  }
+  ctx.fillStyle = '#7fe9ff'; ctx.font = `600 26px ${FONT}`; ctx.fillText('badminton-pair.vercel.app', W / 2, ty + 48);
+  ctx.fillStyle = 'rgba(200,225,255,.7)'; ctx.font = `500 20px ${FONT}`; ctx.fillText('made with Badminton Pair', W / 2, ty + 88);
+  ctx.textAlign = 'left';
   return cv;
 }
 
