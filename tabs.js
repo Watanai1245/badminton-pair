@@ -56,10 +56,17 @@ document.getElementById('hubGrid').innerHTML = FEATURES.map((f, i) =>
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-go]'); if (b) showTab(b.dataset.go);
 });
+/* Back: on the pairing RESULT it returns to the edit page (players / conditions);
+   from any other feature page it returns to the home page. */
+const onPairResult = () => currentView === 'pair' && !document.getElementById('result').classList.contains('hidden');
 document.getElementById('btnHome').addEventListener('click', () => {
+  if (onPairResult()) { showSetup(); return; }
   if (history.state && history.state.v) history.back(); else showTab('hub', true);
 });
-window.addEventListener('popstate', () => showTab('hub', true));
+window.addEventListener('popstate', () => {
+  if (onPairResult()) { showSetup(); history.pushState({ v: 'pair' }, ''); return; }   // device back button: same rule
+  showTab('hub', true);
+});
 
 /* keep the screen on while scoring */
 let wakeLock = null;

@@ -11,10 +11,11 @@ const RULES = [
   { key: 'fairRest', title: 'ผลัดกันพักอย่างยุติธรรม', desc: 'คนที่เล่นน้อยกว่าหรือพักมานานกว่าจะได้เล่นก่อน', def: true },
 ];
 
-const LEVELS = ['', 'เริ่มต้น', 'ปานกลาง', 'เก่ง'];
+const LEVELS = ['', 'เริ่มต้น', 'ปานกลาง', 'เก่ง', 'โปร'];
+const LEVEL_COUNT = 4;
 const SKILL_MODES = [
   { key: 'random', title: 'สุ่มปกติ', desc: 'ไม่สนใจระดับฝีมือ' },
-  { key: 'close', title: 'ระดับใกล้กัน', desc: 'จับคนระดับเดียวกัน ระดับไหนมีไม่ถึง 4 คนให้ยืมคนระดับปานกลางมาช่วย (ไม่จับเริ่มต้นกับเก่งด้วยกัน) และหยุดเมื่อแต่ละกลุ่มจับคู่กันครบ' },
+  { key: 'close', title: 'ระดับใกล้กัน', desc: 'จับคนระดับเดียวกัน ระดับไหนมีไม่ถึง 4 คนให้ยืมคนจากระดับที่ติดกัน (ไม่ข้ามระดับ) และหยุดเมื่อแต่ละกลุ่มจับคู่กันครบ' },
   { key: 'balance', title: 'ถ่วงสมดุล', desc: 'จับเก่งคู่กับอ่อน ให้สองทีมสูสีกัน' },
 ];
 
@@ -94,30 +95,52 @@ const allowedPairs = (players, rules) => {
   return out;
 };
 
-/* "similar level" grouping. Each level plays among itself. A level with fewer than 4 players
-   borrows players from the ADJACENT middle level (beginner+medium or medium+advanced; beginner
-   and advanced never share a match). We pick the split that lets the most players play, using
-   as few borrowed players as possible. */
+/* "similar level" grouping. Each level plays among itself. A level with fewer than 4 players can
+   share a group with the ADJACENT level only (1+2, 2+3, 3+4 — never skipping a level). Levels may
+   split between their own group and the neighbouring pair groups. A small DP over the levels picks
+   the split that lets the most players play, then borrows as few players as possible. */
 function levelGroups(players) {
-  const L = [1, 2, 3].map(l => players.filter(p => p.lv === l));
-  const mid = shuffle(L[1]);
-  let best = null;
-  for (let x = 0; x <= mid.length; x++) for (let y = 0; x + y <= mid.length; y++) {
-    const m = mid.length - x - y;
-    const gs = [
-      { name: 'low', g: [...L[0], ...mid.slice(0, x)], mixed: L[0].length > 0 && x > 0 },
-      { name: 'mid', g: mid.slice(x, x + m), mixed: false },
-      { name: 'high', g: [...L[2], ...mid.slice(x + m)], mixed: L[2].length > 0 && y > 0 },
-    ];
-    const covered = gs.reduce((a, o) => a + (o.g.length >= 4 ? o.g.length : 0), 0);
-    const borrowed = gs.reduce((a, o) => a + (o.mixed ? (o.name === 'low' ? x : y) : 0), 0);
-    if (!best || covered > best.covered || (covered === best.covered && borrowed < best.borrowed)) best = { gs, covered, borrowed };
+  const N = LEVEL_COUNT;
+  const L = Array.from({ length: N }, (_, i) => shuffle(players.filter(p => lvOf(p) === i + 1)));
+  const c = L.map(a => a.length);
+  const play = n => (n >= 4 ? n : 0);
+  // value: more players playing > fewer mixed players > fewer groups
+  const better = (x, y) => !y || x.cov > y.cov || (x.cov === y.cov && (x.mix < y.mix || (x.mix === y.mix && x.grp < y.grp)));
+  // best[l][b]: best plan for levels 0..l when b players of level l go to the pair (l, l+1)
+  const best = Array.from({ length: N }, () => ({}));
+  for (let l = 0; l < N; l++) {
+    for (let a = 0; a <= (l === 0 ? 0 : c[l]); a++) {            // a: players of level l going to the pair (l-1, l)
+      for (let b = 0; a + b <= c[l] && (l < N - 1 || b === 0); b++) {   // b: going to the pair (l, l+1)
+        const s = c[l] - a - b;                                  // s: staying in level l's own group
+        const prev = l === 0 ? [['0', { cov: 0, mix: 0, grp: 0 }]] : Object.entries(best[l - 1]);
+        for (const [pb, pv] of prev) {
+          const pair = l === 0 ? 0 : +pb + a;
+          const v = {
+            cov: pv.cov + play(s) + play(pair),
+            mix: pv.mix + (pair >= 4 ? Math.min(+pb, a) : 0),
+            grp: pv.grp + (s > 0 ? 1 : 0) + (pair > 0 ? 1 : 0),
+            prev: pb, a, b,
+          };
+          if (better(v, best[l][b])) best[l][b] = v;
+        }
+      }
+    }
   }
-  const groups = best.gs.map(o => o.g).filter(g => g.length);
-  const notes = [];
-  best.gs.forEach(o => {
-    if (o.mixed && o.g.length >= 4) notes.push(`ระดับ${o.name === 'low' ? 'เริ่มต้น' : 'เก่ง'}มีไม่ถึง 4 คน จึงรวมกับระดับปานกลางที่ติดกัน`);
-  });
+  // walk back to recover a/b per level
+  const A = Array(N).fill(0), B = Array(N).fill(0);
+  let st = '0';
+  for (let l = N - 1; l >= 0; l--) { const v = best[l][st]; A[l] = v.a; B[l] = v.b; st = v.prev; }
+  const groups = [], notes = [];
+  for (let l = 0; l < N; l++) {
+    const single = L[l].slice(A[l] + B[l]);
+    if (single.length) groups.push(single);
+    if (l < N - 1) {
+      const left = L[l].slice(A[l], A[l] + B[l]), right = L[l + 1].slice(0, A[l + 1]);
+      if (left.length + right.length) groups.push([...left, ...right]);
+      if (left.length && right.length && left.length + right.length >= 4)
+        notes.push(`ระดับ${LEVELS[l + 1]}กับระดับ${LEVELS[l + 2]}มีคนน้อย จึงจับคู่รวมกัน (ระดับติดกัน)`);
+    }
+  }
   return { groups, notes };
 }
 
@@ -247,9 +270,9 @@ function renderSetup() {
 
   const ul = $('#playerList');
   ul.innerHTML = '';
-  state.players.forEach(p => {
+  state.players.forEach((p, i) => {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="dot ${p.g}"></span>
+    li.innerHTML = `<span class="num">${i + 1}.</span>
       <span class="nm">${esc(p.name)}</span>
       <button class="icobtn ${p.g}" data-id="${p.id}" type="button" title="${p.g === 'M' ? 'ชาย' : 'หญิง'} (กดเพื่อสลับเพศ)" aria-label="${p.g === 'M' ? 'ชาย' : 'หญิง'} กดเพื่อสลับเพศ"><svg class="gi" viewBox="0 0 24 24">${GENDER_SVG[p.g]}</svg></button>
       <button class="icobtn" data-lv="${p.id}" type="button" title="ระดับ${LEVELS[p.lv]} (กดเพื่อเปลี่ยนระดับ)" aria-label="ระดับ${LEVELS[p.lv]} กดเพื่อเปลี่ยนระดับ">${BARS(lvOf(p))}</button>
@@ -287,7 +310,7 @@ function addPlayer(name, g, lv = 2, quiet = false) {
   return true;
 }
 
-const LEVEL_SHORT = ['', 'Beginner', 'Medium', 'Advanced'];
+const LEVEL_SHORT = ['', 'Beginner', 'Medium', 'Advanced', 'Pro'];
 /* one-line add form: name + gender icon + level icon + "+" */
 const draft = { g: 'M', lv: 2 };
 function renderDraft() {
@@ -302,7 +325,7 @@ function renderDraft() {
 
 function bindSetup() {
   $('#addG').addEventListener('click', () => { draft.g = draft.g === 'M' ? 'F' : 'M'; renderDraft(); });
-  $('#addLv').addEventListener('click', () => { draft.lv = draft.lv % 3 + 1; renderDraft(); });
+  $('#addLv').addEventListener('click', () => { draft.lv = draft.lv % LEVEL_COUNT + 1; renderDraft(); });
   renderDraft();
   $('#addForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -316,7 +339,7 @@ function bindSetup() {
   $('#playerList').addEventListener('click', e => {
     const gb = e.target.closest('[data-id]'), lb = e.target.closest('[data-lv]'), del = e.target.closest('[data-del]');
     if (gb) { const p = state.players.find(x => x.id === gb.dataset.id); p.g = p.g === 'M' ? 'F' : 'M'; }
-    if (lb) { const p = state.players.find(x => x.id === lb.dataset.lv); p.lv = p.lv % 3 + 1; }
+    if (lb) { const p = state.players.find(x => x.id === lb.dataset.lv); p.lv = p.lv % LEVEL_COUNT + 1; }
     if (del) {
       const gone = state.players.find(x => x.id === del.dataset.del);
       state.players = state.players.filter(x => x.id !== del.dataset.del);
@@ -345,6 +368,7 @@ function bindSetup() {
         const w = t[t.length - 1];
         if (/^(ช|ชาย|m|male)$/i.test(w)) g = 'M';
         else if (/^(ญ|หญิง|f|female)$/i.test(w)) g = 'F';
+        else if (/^(โปร|เซียน|เก่งมาก|pro|d)$/i.test(w)) lv = 4;
         else if (/^(เก่ง|สูง|a)$/i.test(w)) lv = 3;
         else if (/^(กลาง|ปานกลาง|b)$/i.test(w)) lv = 2;
         else if (/^(เริ่มต้น|ใหม่|มือใหม่|c)$/i.test(w)) lv = 1;
@@ -426,7 +450,7 @@ const GENDER_SVG = {
   F: '<circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/>',
 };
 const lvOf = p => p.lv || 2;
-const BARS = lv => `<span class="lv lv${lv}" title="${LEVELS[lv]}"><i></i><i></i><i></i></span>`;
+const BARS = lv => `<span class="lv lv${lv}" title="${LEVELS[lv]}"><i></i><i></i><i></i><i></i></span>`;
 
 function chipHTML(p) {
   return `<div class="pchip ${p.g}"><svg class="gi" viewBox="0 0 24 24" aria-label="${p.g === 'M' ? 'ชาย' : 'หญิง'}">${GENDER_SVG[p.g]}</svg>`
@@ -618,12 +642,12 @@ async function renderImage() {
           ctx.stroke();
           // level bars
           const lv = lvOf(p);
-          for (let b = 0; b < 3; b++) {
-            const bh = 8 + b * 5;
+          for (let b = 0; b < LEVEL_COUNT; b++) {
+            const bh = 7 + b * 4;
             ctx.fillStyle = b < lv ? COL.g8 : '#c9dff2';
-            rr(ctx, x + bw - 38 + b * 8, cy + 9 - bh, 5, bh, 1.5); ctx.fill();
+            rr(ctx, x + bw - 46 + b * 8, cy + 9 - bh, 5, bh, 1.5); ctx.fill();
           }
-          ctx.fillStyle = '#0f2238'; ctx.font = `600 25px ${FONT}`; ctx.fillText(fit(ctx, p.name, bw - 96), x + 40, cy + 1);
+          ctx.fillStyle = '#0f2238'; ctx.font = `600 25px ${FONT}`; ctx.fillText(fit(ctx, p.name, bw - 104), x + 40, cy + 1);
         });
       });
       const vg = ctx.createLinearGradient(vx - 24, 0, vx + 24, 0); vg.addColorStop(0, '#bfe8ff'); vg.addColorStop(1, '#7fd0ff');
@@ -659,25 +683,34 @@ async function renderImage() {
   return cv;
 }
 
+/* Shows an image full-screen so it can be long-pressed and saved (fallback when sharing isn't available) */
+function openImageViewer(url) {
+  const v = $('#qrViewer'); v.querySelector('img').src = url; v.classList.remove('hidden');
+}
+
 async function saveImage() {
-  const btn = $('#btnSave'), old = btn.textContent;
-  btn.disabled = true; btn.textContent = 'กำลังสร้างรูป…';
+  const btn = $('#btnSave');
+  btn.disabled = true; btn.classList.add('busy');          // icon button: show a spinner instead of changing text
   try {
     const cv = await renderImage();
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     const file = new File([blob], 'badminton-pair.png', { type: 'image/png' });
+    const url = URL.createObjectURL(blob);
+    // 1) system share sheet (phones: "Save Image", LINE, ...)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'Badminton Pair' }); toast('บันทึกรูปสำเร็จ', 'ok'); }
-      catch (e) { if (e.name !== 'AbortError') throw e; }
-    } else {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = 'badminton-pair.png';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      toast('บันทึกรูปสำเร็จ', 'ok');
+      try { await navigator.share({ files: [file], title: 'Badminton Pair' }); toast('บันทึกรูปสำเร็จ', 'ok'); return; }
+      catch (e) { if (e.name === 'AbortError') return; /* e.g. NotAllowedError: fall through to the fallbacks */ }
     }
+    // 2) touch device without file sharing: show the picture to long-press and save
+    if (window.matchMedia('(pointer: coarse)').matches) { openImageViewer(url); return; }
+    // 3) desktop: plain download
+    const a = document.createElement('a');
+    a.href = url; a.download = 'badminton-pair.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast('บันทึกรูปสำเร็จ', 'ok');
   } catch (e) { toast('สร้างรูปไม่สำเร็จ', 'error'); console.error(e); }
-  btn.disabled = false; btn.textContent = old;
+  finally { btn.disabled = false; btn.classList.remove('busy'); }
 }
 
 /* ================= Init ================= */

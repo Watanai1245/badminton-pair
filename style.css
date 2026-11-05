@@ -199,8 +199,8 @@ label input, label select { margin-top: 6px; }
 .pchip.F .gi { stroke: var(--female); }
 .lv { margin-left: auto; flex: none; display: inline-flex; align-items: flex-end; gap: 2px; padding-left: 4px; }
 .lv i { width: 4px; border-radius: 1px; background: var(--line); }
-.lv i:nth-child(1) { height: 7px; } .lv i:nth-child(2) { height: 11px; } .lv i:nth-child(3) { height: 15px; }
-.lv1 i:nth-child(-n+1), .lv2 i:nth-child(-n+2), .lv3 i { background: var(--brand); }
+.lv i:nth-child(1) { height: 6px; } .lv i:nth-child(2) { height: 9px; } .lv i:nth-child(3) { height: 12px; } .lv i:nth-child(4) { height: 15px; }
+.lv1 i:nth-child(-n+1), .lv2 i:nth-child(-n+2), .lv3 i:nth-child(-n+3), .lv4 i { background: var(--brand); }
 .pname { font-size: 17px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .bench h3 { margin-bottom: 8px; }
@@ -567,7 +567,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); box-shado
 .vsx { color: var(--neon); text-shadow: 0 0 10px rgba(30,150,255,.55); letter-spacing: 1px; }
 .pchip { border: 1px solid var(--edge); }
 :root[data-theme="dark"] .pchip { background: rgba(255,255,255,.06); }
-.lv1 i:nth-child(-n+1), .lv2 i:nth-child(-n+2), .lv3 i { background: var(--neon); box-shadow: 0 0 6px rgba(30,150,255,.5); }
+.lv1 i:nth-child(-n+1), .lv2 i:nth-child(-n+2), .lv3 i:nth-child(-n+3), .lv4 i { background: var(--neon); box-shadow: 0 0 6px rgba(30,150,255,.5); }
 .players li { border-top-color: var(--edge); }
 .addform .icobtn { border-color: var(--neon); box-shadow: 0 0 12px rgba(30,150,255,.22); }
 
@@ -710,3 +710,50 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); box-shado
 .support .qr-save { background: transparent; font-family: inherit; cursor: pointer; }
 
 .viewer img { max-height: 72vh; width: auto; max-width: 100%; border-radius: 6%; }
+
+/* player list: running number instead of a dot */
+.players .num { flex: none; min-width: 22px; text-align: center; font-size: 14px; font-weight: 600; color: var(--neon); font-variant-numeric: tabular-nums; }
+
+/* player numbers: plain text colour, no accent */
+.players .num { color: var(--ink); font-weight: 500; }
+
+/* "edit data" button now lives at the bottom of the result page */
+.outline.edit { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--brand); border-color: var(--neon); }
+.outline.edit svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+/* result actions: one row of colour-coded icon buttons (edit on the left) */
+.actionrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.abtn {
+  position: relative; min-height: 64px; border: 0; border-radius: 16px; padding: 9px 4px 8px; color: #fff;
+  display: grid; justify-items: center; align-content: center; gap: 5px; font-size: 12px; font-weight: 500; line-height: 1;
+  box-shadow: 0 6px 16px rgba(10,60,160,.22); transition: transform .12s, filter .12s;
+}
+.abtn:active { transform: scale(.95); filter: brightness(.92); }
+.abtn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.abtn.edit { background: linear-gradient(135deg, #ffc247, #f08c00); color: #3a2200; }
+.abtn.save { background: linear-gradient(135deg, #2f93ff, #0a56d6); }
+.abtn.copy { background: linear-gradient(135deg, #1fcfbf, #0a8f93); }
+.abtn.shuf { background: linear-gradient(135deg, #a678ff, #6a3ddb); }
+.abtn:disabled { opacity: .7; }
+.abtn.busy svg { opacity: 0; }
+.abtn.busy::after { content: ''; position: absolute; top: 12px; left: calc(50% - 10px); width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* calmer actions: one clear capsule (edit) + small round icon buttons */
+.actionrow { display: flex; align-items: center; gap: 10px; }
+.abtn, .abtn.save, .abtn.copy, .abtn.shuf {
+  flex: none; width: 46px; height: 46px; min-height: 0; padding: 0; border-radius: 50%;
+  display: grid; place-items: center; gap: 0;
+  background: var(--card); color: var(--brand); border: 1px solid var(--edge); box-shadow: none;
+}
+.abtn:active { transform: scale(.93); filter: none; background: var(--soft); }
+.abtn svg { width: 22px; height: 22px; }
+.abtn.edit {
+  flex: 1; width: auto; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--btn-grad); color: #fff; border: 0; box-shadow: var(--btn-glow); font-size: 15px; font-weight: 600;
+}
+.abtn.edit:active { background: var(--btn-grad); filter: brightness(.92); }
+.abtn.busy::after { top: 12px; width: 18px; height: 18px; left: calc(50% - 9px); border: 3px solid rgba(20,110,230,.25); border-top-color: var(--brand); }
+
+/* edit capsule is back in the action row (left), next to the three round icon buttons */
+.actionrow { justify-content: flex-start; gap: 10px; }
