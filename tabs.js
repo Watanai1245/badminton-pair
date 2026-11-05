@@ -38,7 +38,11 @@ function showTab(view, fromPop = false) {
   document.getElementById('btnHome').classList.toggle('hidden', view === 'hub');
   document.getElementById('pageTitle').textContent = view === 'hub' ? 'Badminton Pair' : feat(view).name;
 
-  if (view !== 'hub' && !fromPop) history.pushState({ v: view }, '');
+  if (view !== 'hub' && !fromPop) {
+    history.pushState({ v: view }, '');
+    // the pairing result may already be showing (restored session): give it its own history page too
+    if (view === 'pair' && !document.getElementById('result').classList.contains('hidden')) history.pushState({ v: 'pair', r: 1 }, '');
+  }
   window.scrollTo({ top: 0 });
   keepAwake(view === 'score');
   document.dispatchEvent(new CustomEvent('tabchange', { detail: view }));
@@ -56,16 +60,19 @@ document.getElementById('hubGrid').innerHTML = FEATURES.map((f, i) =>
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-go]'); if (b) showTab(b.dataset.go);
 });
-/* Back: on the pairing RESULT it returns to the edit page (players / conditions);
-   from any other feature page it returns to the home page. */
-const onPairResult = () => currentView === 'pair' && !document.getElementById('result').classList.contains('hidden');
+/* Back / swipe-back.
+   History pages:  (home) -> {v:'pair'} (edit page) -> {v:'pair', r:1} (result);  other features: {v:'x'}.
+   Going back therefore steps result -> edit page -> home, for the header arrow AND the phone's back gesture. */
 document.getElementById('btnHome').addEventListener('click', () => {
-  if (onPairResult()) { showSetup(); return; }
-  if (history.state && history.state.v) history.back(); else showTab('hub', true);
+  if (history.state && history.state.v) history.back();
+  else if (currentView === 'pair' && !document.getElementById('result').classList.contains('hidden')) showSetup();
+  else showTab('hub', true);
 });
-window.addEventListener('popstate', () => {
-  if (onPairResult()) { showSetup(); history.pushState({ v: 'pair' }, ''); return; }   // device back button: same rule
-  showTab('hub', true);
+window.addEventListener('popstate', e => {
+  const s = e.state;
+  if (!s || !s.v) { showTab('hub', true); return; }
+  showTab(s.v, true);                                   // fromPop: never adds history entries
+  if (s.v === 'pair') { if (s.r && state.schedule) showResult(false); else showSetup(); }
 });
 
 /* keep the screen on while scoring */
@@ -111,7 +118,7 @@ document.querySelectorAll('.js-theme').forEach(b => b.addEventListener('click', 
   applyTheme(t);
   try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* ignore */ }
 }));
-applyTheme(document.documentElement.dataset.theme || 'light');
+applyTheme(document.documentElement.dataset.theme || 'dark');
 
 /* ---------- start: always open on the function hub ---------- */
 showTab('hub', true);

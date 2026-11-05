@@ -383,7 +383,8 @@ function bindSetup() {
   });
 
   $('#btnGo').addEventListener('click', start);
-  $('#btnBack').addEventListener('click', showSetup);
+  // edit: step back in history when the result is its own history page, so device-back and this button agree
+  $('#btnBack').addEventListener('click', () => { if (history.state && history.state.r) history.back(); else showSetup(); });
 }
 
 /* ================= Result UI ================= */
@@ -410,12 +411,19 @@ function start() {
     return;
   }
   err.classList.add('hidden');
+  state.current = 0;
+  showResult(true);
+  history.pushState({ v: 'pair', r: 1 }, '');     // the result is its own history page: device "back" returns to the edit page
+}
+
+/* show the pairing result (also used when navigating history) */
+function showResult(animate) {
   state.view = 'result';
   $('#setup').classList.add('hidden');
   $('#result').classList.remove('hidden');
   $('#btnBack').classList.remove('hidden');
   window.scrollTo({ top: 0 });
-  showRound(0, true);
+  showRound(state.current, animate);
 }
 
 function generate() {
