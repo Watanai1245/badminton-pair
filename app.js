@@ -15,12 +15,19 @@ const LEVELS = ['', 'เริ่มต้น', 'ปานกลาง', 'เก
 const LEVEL_COUNT = 4;
 const SKILL_MODES = [
   { key: 'random', title: 'สุ่มปกติ', desc: 'ไม่สนใจระดับฝีมือ' },
-  { key: 'close', title: 'ระดับใกล้กัน', desc: 'จับคนระดับเดียวกัน ระดับไหนมีไม่ถึง 4 คนให้ยืมคนจากระดับที่ติดกัน (ไม่ข้ามระดับ) และหยุดเมื่อแต่ละกลุ่มจับคู่กันครบ' },
+  { key: 'close', title: 'ระดับใกล้กัน', desc: 'จับคนระดับเดียวกัน ระดับไหนมีไม่ถึง 4 คนให้รวมกับระดับที่ใกล้ที่สุดที่มีคน (ไม่ทิ้งใครไว้) และหยุดเมื่อแต่ละกลุ่มจับคู่กันครบ' },
   { key: 'balance', title: 'ถ่วงสมดุล', desc: 'จับเก่งคู่กับอ่อน ให้สองทีมสูสีกัน' },
 ];
 
+/* the pairing mode the CURRENT schedule was made with (not whatever is selected now) */
+const modeTitle = () => {
+  const key = (state.schedule && state.schedule.mode) || state.skill;
+  const m = SKILL_MODES.find(x => x.key === key) || SKILL_MODES[0];
+  return m.title;
+};
+
 const state = {
-  skill: 'random',
+  skill: 'balance',                 // recommended default
   players: [],
   rules: Object.fromEntries(RULES.map(r => [r.key, r.def])),
   schedule: null,
@@ -40,7 +47,7 @@ function load() {
     if (!d) return;
     Object.assign(state, {
       players: Array.isArray(d.players) ? d.players.map(p => ({ ...p, lv: p.lv || 2 })) : [],
-      skill: d.skill || 'random',
+      skill: d.skill || 'balance',
       rules: { ...state.rules, ...(d.rules || {}) },
       schedule: d.schedule && Array.isArray(d.schedule.rounds) ? d.schedule : null,
       current: d.current || 0, view: d.view || 'setup',
@@ -96,12 +103,14 @@ const allowedPairs = (players, rules) => {
 };
 
 /* "similar level" grouping. Each level plays among itself. A level with fewer than 4 players can
-   share a group with the ADJACENT level only (1+2, 2+3, 3+4 — never skipping a level). Levels may
-   split between their own group and the neighbouring pair groups. A small DP over the levels picks
-   the split that lets the most players play, then borrows as few players as possible. */
+   share a group with the NEXT level that actually has players (so 1+2, 2+3, 3+4 — or 1+3 when
+   nobody is level 2). Levels may split between their own group and the neighbouring pair groups.
+   A small DP over the levels picks the split that lets the most players play (so weaker players are
+   never left out just because a level in between is empty), then borrows as few players as possible. */
 function levelGroups(players) {
-  const N = LEVEL_COUNT;
-  const L = Array.from({ length: N }, (_, i) => shuffle(players.filter(p => lvOf(p) === i + 1)));
+  const all = Array.from({ length: LEVEL_COUNT }, (_, i) => shuffle(players.filter(p => lvOf(p) === i + 1)));
+  const present = all.map((a, i) => (a.length ? i : -1)).filter(i => i >= 0);     // levels that have players
+  const L = present.map(i => all[i]), N = present.length;
   const c = L.map(a => a.length);
   const play = n => (n >= 4 ? n : 0);
   // value: more players playing > fewer mixed players > fewer groups
@@ -138,7 +147,7 @@ function levelGroups(players) {
       const left = L[l].slice(A[l], A[l] + B[l]), right = L[l + 1].slice(0, A[l + 1]);
       if (left.length + right.length) groups.push([...left, ...right]);
       if (left.length && right.length && left.length + right.length >= 4)
-        notes.push(`ระดับ${LEVELS[l + 1]}กับระดับ${LEVELS[l + 2]}มีคนน้อย จึงจับคู่รวมกัน (ระดับติดกัน)`);
+        notes.push(`ระดับ${LEVELS[present[l] + 1]}กับระดับ${LEVELS[present[l + 1] + 1]}มีคนน้อย จึงจับคู่รวมกัน (ระดับใกล้เคียง)`);
     }
   }
   return { groups, notes };
@@ -249,7 +258,7 @@ function generateSchedule(players, rules, skill = 'random') {
   }
 
   if (pools.some(pl => !pl.done)) warnings.add(`ยังจับคู่ไม่ครบทุกคู่ภายใน ${MAX_ROUNDS} รอบ`);
-  return { rounds: out, games, warnings: [...warnings] };
+  return { rounds: out, games, warnings: [...warnings], mode: skill };
 }
 
 /* minimum rounds needed for a full cycle (used for the hint on the setup page) */
@@ -439,6 +448,7 @@ function applySchedule() {
   if (state.schedule.warnings.length) {
     w.innerHTML = state.schedule.warnings.join('<br>'); w.classList.remove('hidden');
   } else w.classList.add('hidden');
+  $('#modeBadge').innerHTML = `จับคู่แบบ <b>${esc(modeTitle())}</b>`;
   renderChips();
 }
 
@@ -498,7 +508,7 @@ function showRound(i, animate) {
 const tag = p => `${p.name} (${p.g === 'M' ? 'ช' : 'ญ'} ${'★'.repeat(lvOf(p))})`;
 
 function scheduleText() {
-  const lines = ['Badminton Pair'];
+  const lines = ['Badminton Pair', `จับคู่แบบ: ${modeTitle()}`];
   state.schedule.rounds.forEach((rd, i) => {
     lines.push(`\nรอบ ${i + 1}`);
     rd.matches.forEach(m =>
@@ -582,7 +592,7 @@ async function renderImage() {
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, HEAD);
   // court lines motif
   ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 3;
-  const cx0 = 790, cy0 = 112, cw = 230, ch = 184, cm = cy0 + ch / 2;
+  const cx0 = 870, cy0 = 112, cw = 150, ch = 184, cm = cy0 + ch / 2;
   ctx.strokeRect(cx0, cy0, cw, ch);
   ctx.beginPath();
   ctx.moveTo(cx0 + 22, cy0); ctx.lineTo(cx0 + 22, cy0 + ch); ctx.moveTo(cx0 + cw - 22, cy0); ctx.lineTo(cx0 + cw - 22, cy0 + ch);
@@ -603,13 +613,13 @@ async function renderImage() {
   const tw = ctx.measureText('Badminton ').width; ctx.fillStyle = '#7fe9ff'; ctx.fillText('Pair', PAD + 180 + tw, 96);
   ctx.font = `500 27px ${FONT}`; ctx.fillStyle = '#bfe3ff'; ctx.fillText('ตารางจับคู่แบดมินตันประเภทคู่', PAD + 182, 154);
   // info chips
-  const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+  const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
   let chipX = PAD;
-  [dateStr, `${state.players.length} คน`, `${rounds.length} รอบ`].forEach(t => {
-    ctx.font = `600 25px ${FONT}`; const w = ctx.measureText(t).width + 44;
+  [`จับคู่แบบ ${modeTitle()}`, dateStr, `${state.players.length} คน`, `${rounds.length} รอบ`].forEach(t => {
+    ctx.font = `600 24px ${FONT}`; const w = ctx.measureText(t).width + 40;
     ctx.fillStyle = 'rgba(255,255,255,.14)'; rr(ctx, chipX, 238, w, 52, 26); ctx.fill();
     ctx.strokeStyle = 'rgba(190,235,255,.45)'; ctx.lineWidth = 2; rr(ctx, chipX, 238, w, 52, 26); ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.fillText(t, chipX + 22, 265); chipX += w + 14;
+    ctx.fillStyle = '#fff'; ctx.fillText(t, chipX + 20, 265); chipX += w + 12;
   });
   const edge = ctx.createLinearGradient(0, 0, W, 0); edge.addColorStop(0, COL.neon); edge.addColorStop(1, '#1a8cff');
   ctx.fillStyle = edge; ctx.fillRect(0, HEAD - 6, W, 6);

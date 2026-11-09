@@ -757,3 +757,27 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); box-shado
 
 /* edit capsule is back in the action row (left), next to the three round icon buttons */
 .actionrow { justify-content: flex-start; gap: 10px; }
+
+/* recommendation note under the mode selector */
+.recnote { margin-top: 12px; line-height: 1.55; }
+.recnote b { color: var(--ink); font-weight: 600; }
+#skillHint { margin-top: 8px; }
+
+/* recommendation banner: pale yellow, with breathing room above and below */
+.recnote, :root[data-theme="dark"] .recnote {
+  margin: 16px 0 14px; padding: 12px 14px; line-height: 1.6; font-size: 13.5px;
+  background: #fff4c7; color: #5a4200; border: 0; border-left: 4px solid #f0b400; border-radius: 6px 12px 12px 6px;
+}
+.recnote b, :root[data-theme="dark"] .recnote b { color: #3a2a00; font-weight: 700; }
+#skillHint { margin: 0 0 4px; }
+
+/* recommendation banner: faint, natural yellow (translucent on dark, pale on light) */
+.recnote { background: #fff9e0; color: #6a5200; border-left-color: #e8b923; }
+.recnote b { color: #4a3900; }
+:root[data-theme="dark"] .recnote { background: rgba(255,204,64,.13); color: #f1e2a8; border-left-color: #e8b923; }
+:root[data-theme="dark"] .recnote b { color: #ffe9a6; }
+
+/* which pairing mode made this schedule */
+.modebadge { display: flex; justify-content: center; margin: 2px 0 12px; font-size: 13px; color: var(--muted);
+  gap: 6px; align-items: center; }
+.modebadge b { color: var(--neon); font-weight: 600; padding: 3px 12px; border: 1px solid var(--neon); border-radius: 999px; background: var(--soft); }
